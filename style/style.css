@@ -1,0 +1,120 @@
+body,html {
+    height: 100%;
+}
+
+body{
+    min-height: 100vh;
+	height: 100%;
+	background-repeat: no-repeat;
+	background-position:center;
+	background-size:cover;
+	background-attachment: fixed;
+}
+
+div#collapsibleNavbar {
+    color: white;
+}
+
+/* Event Styles */
+
+.btn-lg-add-event {
+    font-weight: 500;
+    padding: .5rem 1rem;
+    font-size: 1.5rem;
+    line-height: 1.5;
+    border-radius: .3rem;
+}
+
+.card {
+    padding-top: 20px;
+    margin: 10px 0 20px 0;
+    background-color: rgba(214, 224, 226, 0.2);
+    border-top-width: 0;
+    border-bottom-width: 2px;
+    /*-webkit-border-radius: 3px;*/
+    /*-moz-border-radius: 3px;*/
+    border-radius: 1.5rem;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+    box-shadow: none;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+.card.hovercard {
+    position: relative;
+    padding-top: 0;
+    overflow: hidden;
+    text-align: center;
+}
+
+.card.hovercard .card-header {
+	background-size: cover;
+    height: 135px;
+}
+
+/* Event Modal Style*/
+.bg-info-event-modal {
+    background-color: #bdeaf1!important;
+}
+
+/* Event Pagination Style*/
+a.page-link {
+    border: 4px solid #dee2e6;
+    background-color: white;
+    color: blue;
+}
+
+a.page-link:hover {
+    border: 4px solid #007bff;
+}
+
+.rounded-left-event {
+    border-top-left-radius: 1.25rem!important;
+    border-bottom-left-radius: 1.25rem!important;
+}
+
+.rounded-right-event {
+    border-top-right-radius: 1.25rem!important;
+    border-bottom-right-radius: 1.25rem!important;
+}
+
+/* Add Event Styles*/
+
+.border-form-override {
+    background-color: white;
+    border: 10px solid #78a6ed!important;
+    border-radius: 25px;
+}
+
+.label-add-edit-event {
+    font-weight: 650;
+    font-size: 17px;
+}
+
+.form-control {
+    border: 3px solid #b9c3ce;
+}
+
+.time-event { 
+    border: 3px solid #b9c3ce;
+    border-radius: .25rem;
+}
+
+.time-event .label-add-edit-event {
+    font-weight: 500;
+    font-size: 16px;
+}
+
+input.form-control.event-time.w-100{
+    border: 2px solid #b9c3ce;
+}
+
+input#customFile {
+    border: 3px solid #b9c3ce;
+}
+
+.w-100.p-3.rounded.bg-light.text-dark, .response {
+    border-radius: 1.25rem!important;
+}

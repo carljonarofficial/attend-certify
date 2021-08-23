@@ -1,0 +1,9 @@
+/* Custom DataTables Styles */
+.dataTables_wrapper .dataTables_filter input {
+  border: 3px solid #b9c3ce;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+  border-color: #78abe2;
+        box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.075) inset, 0px 0px 8px rgba(255, 100, 255, 0.5);
+}

@@ -132,10 +132,11 @@
 	            session_start();
 	            $_SESSION["ID"] = $memberRecord[0]["ID"];
 	            $_SESSION["username"] = $memberRecord[0]["username"];
+	            $_SESSION["email"] = $memberRecord[0]["email"];
 	            // $_SESSION["password"] = $memberRecord[0]["password"];
 	            // $_SESSION["remember"];
 	            session_write_close();
-	            $url = "./events.php";
+	            $url = "./home.php";
 	            header("Location: $url");
 	        } else if ($loginPassword == 0) {
 	            $loginStatus = "Invalid username or password.";

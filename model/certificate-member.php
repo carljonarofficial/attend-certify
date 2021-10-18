@@ -24,11 +24,21 @@
     		include 'dbConnection.php';
 
     		// SQL Query
-    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `certificate`.`datetime_generated` ASC)) AS `row_num`, CONCAT(`invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename`) AS `invitee_name`, `certificate`.`invitee_code`, `certificate`.`certificate_code`, `certificate`.`datetime_generated` FROM `invitees`, `certificate` WHERE `certificate`.`invitee_code` = `invitees`.`invitee_code` AND `certificate`.`event_ID` = $selectedEventID ";
+    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `certificate`.`datetime_generated` ASC)) AS `row_num`, CONCAT(`invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename`) AS `invitee_name`, `certificate`.`invitee_code`, `certificate`.`certificate_code`, `certificate`.`datetime_generated` FROM `invitees`, `certificate` WHERE `certificate`.`invitee_code` = `invitees`.`invitee_code` AND `certificate`.`event_ID` = ? ";
+
+    		// For Search Query
+    		if(!empty($_POST["search"]["value"])){
+    			$sqlQuery .= "AND (`invitees`.`firstname` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`middlename` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`lastname` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `certificate`.`invitee_code` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `certificate`.`certificate_code` LIKE '".$_POST["search"]["value"]."%') ";
+    		}
 
     		// Order Query
     		if (!empty($_POST["order"])) {
-    			$sqlQuery .= 'ORDER BY '.$_POST['order']['0']['column'].' '.$_POST['order']['0']['dir'].' ';
+    			$columnIndex = $_POST['order'][0]['column']; // Column index
+    			$sqlQuery .= 'ORDER BY '.$_POST['columns'][$columnIndex]['data'].' '.$_POST['order']['0']['dir'].' ';
     		} else{
     			$sqlQuery .= 'ORDER BY `row_num` ASC ';
     		}
@@ -38,8 +48,12 @@
 				$sqlQuery .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
 			}
 
-			// Fetch up a list of attendance
-			$certificateList = $conn->query($sqlQuery);
+			// Fetch up a list of certificates
+			$certificateStmt = $conn->prepare($sqlQuery);
+		    $certificateStmt->bind_param('i', $selectedEventID);
+		    $certificateStmt->execute();
+		    $certificateList =  $certificateStmt->get_result();
+		    $certificateStmt->close();
 
 			// Fetch up number of rows
 			$sqlNumQuery = "SELECT * FROM `certificate` WHERE `event_ID` = $selectedEventID";
@@ -52,14 +66,15 @@
 			// Save into array
 			$certificateData = array();
 	        while ($row = $certificateList->fetch_assoc()) {
-	        	$ivtRows = array();
-	        	$ivtRows[] = '<button type="button" name="viewCertificate" id="'.$row["invitee_code"].'" class="btn btn-primary btn-xs viewCertificate w-100"><i class="fas fa-eye"></i> View</button>';
-	        	$ivtRows[] = $row["row_num"];
-	        	$ivtRows[] = $row["invitee_name"];
-	        	$ivtRows[] = $row["invitee_code"];
-	        	$ivtRows[] = $row["certificate_code"];
-	        	$ivtRows[] = $row["datetime_generated"];
-	        	$ivtRows[] = '<button type="button" name="sendEmailCertificate" id="'.$row["invitee_code"].'" class="btn btn-success btn-xs sendCertificate w-100"><i class="fas fa-envelope"></i> Send</button>';
+	        	$ivtRows = array(
+	        		"view" => '<button type="button" name="viewCertificate" id="'.$row["invitee_code"].'" class="btn btn-primary btn-xs viewCertificate w-100"><i class="fas fa-eye"></i> View</button>',
+		        	"row_num" => $row["row_num"],
+		        	"invitee_name" => $row["invitee_name"],
+		        	"invitee_code" => $row["invitee_code"],
+		        	"certificate_code" => $row["certificate_code"],
+		        	"datetime_generated" => $row["datetime_generated"],
+		        	"send" => '<button type="button" name="sendEmailCertificate" id="'.$row["invitee_code"].'" class="btn btn-success btn-xs sendCertificate w-100"><i class="fas fa-envelope"></i> Send</button>',
+	        	);
 	        	$certificateData[] = $ivtRows;
 	        	$numFiltered++;
 	        }
@@ -81,12 +96,16 @@
     		include 'dbConnection.php';
 
     		// SQL Query to scan if the certificate code is valid
-    		$sqlScanQuery = "SELECT * FROM `certificate` WHERE `event_ID` = $selectedEventID AND `certificate_code` = '$scannedCertificateCode'";
+    		$sqlScanQuery = "SELECT * FROM `certificate` WHERE `event_ID` = ? AND `certificate_code` = ?";
 
     		// Fetch up the scan result
-    		$scanResult = $conn->query($sqlScanQuery);
+    		$scanStmt = $conn->prepare($sqlScanQuery);
+	        $scanStmt->bind_param('is', $selectedEventID, $scannedCertificateCode);
+	        $scanStmt->execute();
+	        $scanResult =  $scanStmt->get_result();
+	        $scanStmt->close();
 
-    		// Checl if the query is successful
+    		// Check if the query is successful
     		if ($scanResult->num_rows > 0) { // If the invitee code registered
     			// It will out success message
     			$output = array("scanStatus" => "success");
@@ -107,7 +126,11 @@
 			include 'dbConnection.php';
 
 			// Fetch up an certificate information
-			$certificateFileInfo = $conn->query("SELECT * FROM `events` WHERE `ID` = $currentEventID");
+			$certificateFileStmt = $conn->prepare("SELECT * FROM `events` WHERE `ID` = ?");
+	        $certificateFileStmt->bind_param('i', $currentEventID);
+	        $certificateFileStmt->execute();
+	        $certificateFileInfo =  $certificateFileStmt->get_result();
+	        $certificateFileStmt->close();
 
 			while ($row = $certificateFileInfo->fetch_assoc()){
 				$certificateFile = $row["certificate_template"];
@@ -128,7 +151,11 @@
 			include 'dbConnection.php';
 
 			// Fetch up an certificate information
-			$certificateInfo = $conn->query("SELECT `certificate`.*, CONCAT(`invitees`.firstname, ' ', `invitees`.`middlename`, ' ', `invitees`.lastname) AS `invitee_name` FROM `certificate`, `invitees` WHERE `certificate`.`invitee_code` = '$selectedInviteeCode' AND `invitees`.`invitee_code` = '$selectedInviteeCode';");
+			$certificateStmt = $conn->prepare("SELECT `certificate`.*, CONCAT(`invitees`.firstname, ' ', `invitees`.`middlename`, ' ', `invitees`.lastname) AS `invitee_name` FROM `certificate`, `invitees` WHERE `certificate`.`invitee_code` = ? AND `invitees`.`invitee_code` = ?");
+	        $certificateStmt->bind_param('ss', $selectedInviteeCode, $selectedInviteeCode);
+	        $certificateStmt->execute();
+	        $certificateInfo =  $certificateStmt->get_result();
+	        $certificateStmt->close();
 
 			while ($row = $certificateInfo->fetch_assoc()){
 				// Get Certificate Code
@@ -162,7 +189,11 @@
 			include 'dbConnection.php';
 
 			// Fetch up an event information
-			$eventInfo = $conn->query("SELECT * FROM `events` WHERE `admin_ID` = $id AND `ID` = $currentEventID");
+			$eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ?");
+	        $eventStmt->bind_param('ii', $id, $currentEventID);
+	        $eventStmt->execute();
+	        $eventInfo =  $eventStmt->get_result();
+	        $eventStmt->close();
 	        while ($row = $eventInfo->fetch_assoc()) {
 	            $eventTitle = $row["event_title"];
 	            $eventDate = date_format(date_create($row["date"]),"F d, Y");
@@ -173,7 +204,11 @@
 	        }
 
 	        // Fetch up a certificate information
-	        $certificateInfo = $conn->query("SELECT CONCAT(`invitees`.`firstname`, ' ', `invitees`.`middlename`, ' ', `invitees`.`lastname`) AS `invitee_name`, `invitees`.`email`, `certificate`.`certificate_code` FROM `invitees`, `certificate` WHERE `invitees`.`event_ID` = $currentEventID AND `certificate`.`event_ID` = $currentEventID AND `invitees`.`invitee_code` = '$inviteeCode' AND `certificate`.`invitee_code` = '$inviteeCode'");
+	        $certificateStmt = $conn->prepare("SELECT CONCAT(`invitees`.`firstname`, ' ', `invitees`.`middlename`, ' ', `invitees`.`lastname`) AS `invitee_name`, `invitees`.`email`, `certificate`.`certificate_code` FROM `invitees`, `certificate` WHERE `invitees`.`event_ID` = ? AND `certificate`.`event_ID` = ? AND `invitees`.`invitee_code` = ? AND `certificate`.`invitee_code` = ?");
+	        $certificateStmt->bind_param('iiss', $currentEventID, $currentEventID, $inviteeCode, $inviteeCode);
+	        $certificateStmt->execute();
+	        $certificateInfo =  $certificateStmt->get_result();
+	        $certificateStmt->close();
 	        while ($row = $certificateInfo->fetch_assoc()){
 	        	$certNameInvitee = $row["invitee_name"];
 	        	$certEmailInvitee = $row["email"];
@@ -229,6 +264,139 @@
 	        	$response = array('Status' => "error");
 				echo json_encode($response);
 	        }
+		}
+
+		/**
+		 * To get a certificate config
+		*/
+		public function getCertConfig($currentEventID){
+			// Database Connection
+			include 'dbConnection.php';
+
+			// Fetch up an certificate config information
+			$certConfigStmt = $conn->prepare("SELECT * FROM `certificate_config` WHERE `event_ID` = ?");
+			$certConfigStmt->bind_param('i', $currentEventID);
+		    $certConfigStmt->execute();
+		    $certConfigInfo =  $certConfigStmt->get_result();
+		    $certConfigStmt->close();
+
+			$certOrientation = "L";
+			$certSize = "Letter";
+			$certTextFont = "Helvetica";
+			$certTextFontStyle = "";
+			$certTextFontSize = 30;
+			$certTextFontColor = "#000000";
+			$certTextPositionX = 130;
+			$certTextPositionY = 79;
+			$certBarcodePositionX = 20;
+			$certBarcodePositionY = 169;
+
+			// Get exisiting config information
+			while ($row = $certConfigInfo->fetch_assoc()){
+				// Certificate Layout
+				$certLayout = explode("-",$row["page_layout"]);
+				$certOrientation = $certLayout[0];
+				$certSize = $certLayout[1];
+				// Certificate Text Style
+				$certTextStyle = explode("-",$row["text_style"]);
+				$certTextFont = $certTextStyle[0];
+				$certTextFontStyle = $certTextStyle[1];
+				$certTextFontSize = $certTextStyle[2];
+				// Certificate Text Color
+				$certTextFontColor = $row["text_color"];
+				// Certificate Text Position
+				$certTextPosition = explode(",",$row["text_position"]);
+				$certTextPositionX = $certTextPosition[0];
+				$certTextPositionY = $certTextPosition[1];
+				// Certificate Barcode Position
+				$certBarcodePosition = explode(",",$row["barcode_position"]);
+				$certBarcodePositionX = $certBarcodePosition[0];
+				$certBarcodePositionY = $certBarcodePosition[1];
+			}
+
+			echo json_encode(array(
+				"certOrientation" => $certOrientation,
+				"certSize" => $certSize,
+				"certTextFont" => $certTextFont,
+				"certTextFontStyle" => $certTextFontStyle,
+				"certTextFontSize" => $certTextFontSize,
+				"certTextFontColor" => $certTextFontColor,
+				"certTextPositionX" => $certTextPositionX,
+				"certTextPositionY" => $certTextPositionY,
+				"certBarcodePositionX" => $certBarcodePositionX,
+				"certBarcodePositionY" => $certBarcodePositionY
+			));
+		}
+
+		/**
+		 * To get a preview certificate
+		*/
+		public function getPreviewCertificate($currentEventID)
+		{
+			// Get Certificate File
+			$certificateFile =  $this->getCertificateTemplateFile($currentEventID);
+
+			// Sample Certificate Code
+			$text = "20210101003025-CERT-CCCCCC";
+
+			// Sample Name
+			$name = "Sample Name and Barcode";
+
+			include "model/certificate-preview.php";
+
+			echo json_encode(array("base64CERT" => $strBase64));
+		}
+
+		/**
+		 * To save a certificate config
+		*/
+		public function saveCertConfig($currentEventID)
+		{
+			// Cert Config Details
+			$certLayout = $_POST["certLayout"];
+			$certTextStyle = $_POST["certTextStyle"];
+			$certTextFontColor = $_POST["certTextFontColor"];
+			$certTextPosition = $_POST["certTextPosition"];
+			$certBarcodePosition = $_POST["certBarcodePosition"];
+
+			// Database Connection
+			include 'dbConnection.php';
+
+			// Fetch up an certificate config information
+			$certConfigStmt = $conn->prepare("SELECT * FROM `certificate_config` WHERE `event_ID` = ?");
+			$certConfigStmt->bind_param('i', $currentEventID);
+		    $certConfigStmt->execute();
+		    $certConfigInfo =  $certConfigStmt->get_result();
+		    $certConfigStmt->close();
+
+			// Check if the config exists
+			if ($certConfigInfo->num_rows > 0) {
+				// Update Existing Config
+				$updateStmt = $conn->prepare("UPDATE `certificate_config` SET `page_layout`=?, `text_style`=?, `text_color`=?, `text_position`=?, `barcode_position`=? WHERE `event_ID` = ?");
+				$updateStmt->bind_param('sssssi', $certLayout, $certTextStyle, $certTextFontColor, $certTextPosition, $certBarcodePosition, $currentEventID);
+				// Validate if Update Query is successful or not
+				if ($updateStmt->execute()) {
+					$updateStmt->close();
+					$response = array('Status' => "success");
+					echo json_encode($response);
+				}else{
+					$response = array('Status' => "error");
+					echo json_encode($response);
+				}
+			} else {
+				// Insert New Config
+				$insertStmt = $conn->prepare("INSERT INTO `certificate_config`(`event_ID`, `page_layout`, `text_style`, `text_color`, `text_position`, `barcode_position`) VALUES (?,?,?,?,?,?)");
+				$insertStmt->bind_param("isssss", $currentEventID, $certLayout, $certTextStyle, $certTextFontColor, $certTextPosition, $certBarcodePosition);
+				// Validate if Insert Query is successful or not
+				if ($insertStmt->execute()) {
+					$insertStmt->close();
+					$response = array('Status' => "success");
+					echo json_encode($response);
+				}else{
+					$response = array('Status' => "error");
+					echo json_encode($response);
+				}
+			}
 		}
 	}
 ?>

@@ -10,22 +10,32 @@
 
     // Check if it fetched correctly from the events page
     $eventDetailsErrorFlag = false;
-    if (isset($_SESSION["event-present-id"])) {
-        $eventID = $_SESSION["event-present-id"];
-        $eventInfo = $conn->query("SELECT * FROM `events` WHERE `admin_ID` = $id AND `ID` = $eventID");
-        while ($row = $eventInfo->fetch_assoc()) {
-            $eventID = $row['ID'];
-            $eventTitle = $row["event_title"];
-            $eventDate = $row["date"];
-            $eventTimeInclusive = $row["time_inclusive"];
-            $eventTimeConclusive = $row["time_conclusive"];
-            $eventVenue = $row["venue"];
-            $eventDesciption = $row["description"];
-            $eventAgenda = $row["agenda"];
-            $eventTheme = $row["theme"];
-            $certTemplate = $row["certificate_template"];
+    if (isset($_GET['eventID'])) {
+        $eventID = $_GET['eventID'];
+        $eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ?");
+        $eventStmt->bind_param('ii', $id, $eventID);
+        $eventStmt->execute();
+        $eventInfo =  $eventStmt->get_result();
+        $eventStmt->close();
+        if ($eventInfo->num_rows > 0) {
+            while ($row = $eventInfo->fetch_assoc()) {
+                $eventID = $row['ID'];
+                $eventTitle = $row["event_title"];
+                $eventDate = $row["date"];
+                $eventTimeInclusive = $row["time_inclusive"];
+                $eventTimeConclusive = $row["time_conclusive"];
+                $eventVenue = $row["venue"];
+                $eventDesciption = $row["description"];
+                $eventAgenda = $row["agenda"];
+                $eventTheme = $row["theme"];
+                $certTemplate = $row["certificate_template"];
+                $dateTimeAdded = $row["datetime_added"];
+            }
+            $eventDetailsErrorFlag = true;    
+        } else {
+            $eventTitle = "ERROR!";
+            $eventDetailsErrorFlag = false;
         }
-        $eventDetailsErrorFlag = true;
     }else{
     	$eventTitle = "ERROR!";
         $eventDetailsErrorFlag = false;
@@ -62,7 +72,7 @@
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js"></script>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')" class="d-flex flex-column">
+<body class="d-flex flex-column">
     <?php
         // Initialize Active Page for Navbar Highlight
         $activePage = "events";
@@ -158,6 +168,10 @@
                                                             <h5><i class="fa fa-quote-left"></i> Theme:</h5>
                                                             <p><?php echo $eventTheme;?></p>
                                                         </div>
+                                                        <div class="form-group">
+                                                            <h5><i class="fas fa-hourglass-start"></i> Date and Time Added:</h5>
+                                                            <p><?php echo date_format(date_create($dateTimeAdded),"M d, Y h:iA");?></p>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -223,7 +237,7 @@
                                                                     </div>
                                                                     <div class="form-group">
                                                                         <label for="addMiddleName" class="label-add-edit-event">
-                                                                            Miidle Name: <span class="required error" id="middleName-info"></span>
+                                                                            Middle Name: <span class="required error" id="middleName-info"></span>
                                                                         </label>
                                                                         <input type="text" class="form-control" name="inviteeMiddleName" id="inviteeMiddleName" placeholder="Middle Name">
                                                                     </div>
@@ -269,7 +283,7 @@
                                                             <input type="hidden" name="presentInviteePhoneNum" id="presentInviteePhoneNum" /> -->
                                                             <input type="hidden" name="inviteeAction" id="inviteeAction" value="" />
                                                             <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fa fa-times"></i> Cancel</button>
-                                                            <button type="submit" class="btn btn-success" name="inviteeSave" value="Save" id="inviteeSave"> Add Invitee</button>
+                                                            <button type="submit" class="btn btn-success" name="inviteeSave" value="Save" id="inviteeSave"><i class="fas fa-save"></i> Save</button>
                                                             <!-- <input type="submit" name="inviteeSave" id="inviteeSave" class="btn btn-info" value="Save" /> -->
                                                         </div>
                                                     </form>                 

@@ -18,7 +18,7 @@
 		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-		<!-- Other Custome Stylesheet -->
+		<!-- Other Custom Stylesheet -->
 		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" crossorigin="anonymous">
 		<link href="themes/explorer-fas/theme.css" media="all" rel="stylesheet" type="text/css"/>
 

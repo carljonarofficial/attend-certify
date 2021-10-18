@@ -1,16 +1,21 @@
 <?php
 	use Phppot\Member;
 	if (! empty($_POST["login-btn"])) {
-	    require_once __DIR__ . '/model/member.php';
+	    require_once __DIR__ . '/model/account-member.php';
 	    $member = new Member();
 	    $loginResult = $member->loginMember();
 	}
 	$signup_msg = "";
+	$deleteAccountMsg = "";
 	session_start();
 	if (isset($_SESSION["sign-up-validation-msg"])) {
         $signup_msg = $_SESSION["sign-up-validation-msg"];
     }
+    if (isset($_SESSION['delete-account-validation-msg'])) {
+    	$deleteAccountMsg = $_SESSION['delete-account-validation-msg'];
+    }
     unset($_SESSION["sign-up-validation-msg"]);
+    unset($_SESSION['delete-account-validation-msg']);
     session_write_close();
 ?>
 
@@ -20,18 +25,20 @@
 	<title>Login | Attend and Certify</title>
 	<?php 
         include 'style/style.php';
-        // the include or require statement takes all the text/code/markup that exists in the specified file	
+        // the include or require statement takes all the text/code/markup that exists in the specified file
     ?>
     <!-- Login Form Styles -->
     <link rel="stylesheet" href="style/login_signup.css">
+    <!-- Modified Styles -->
     <style>
 	    .user_card {
 	    	height: 490px;
 		}
 	</style>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')">
+<body>
 	<div class="container-fluid h-100">
+        <!-- Main Body -->
 		<div class="d-flex justify-content-center h-100">
 			<!-- Login Form -->
 			<div class="user_card">
@@ -50,8 +57,11 @@
 	                    <?php
 					        }
 				        ?>
-						<?php if(!empty($loginResult)){?>
+						<?php if (!empty($loginResult)){?>
 							<div class="error-msg"><?php echo $loginResult;?></div>
+						<?php }?>
+						<?php if (!empty($deleteAccountMsg)) { ?>
+							<div class="server-response error-msg">Your account has been deleted.</div>
 						<?php }?>
 						<!-- Username Block -->
 						<span class="required error" id="username-info"></span>
@@ -59,7 +69,7 @@
 							<div class="input-group-append">
 								<span class="input-group-text"><i class="fa fa-user"></i></span>
 							</div>
-							<input type="text" name="username" id="username" class="form-control input_user" placeholder="Username">
+							<input type="text" name="username" id="username" class="form-control input_user" placeholder="Username" value="<?php if(isset($_COOKIE["username"])) { echo $_COOKIE["username"]; } ?>">
 						</div>
 						<!-- Password Block -->
 						<span class="required error" id="login-password-info"></span>
@@ -67,12 +77,13 @@
 							<div class="input-group-append">
 								<span class="input-group-text"><i class="fa fa-key"></i></span>
 							</div>
-							<input type="password" name="login-password" id="login-password" class="form-control input_pass" placeholder="Password">
+							<input type="password" name="login-password" id="login-password" class="form-control input_pass" placeholder="Password" value="<?php if(isset($_COOKIE["password"])) { echo $_COOKIE["password"]; } ?>" >
 						</div>
+						<!-- Remember Me Block -->
 						<div class="form-group">
 							<div class="custom-control custom-checkbox">
-								<input type="checkbox" name="remember" class="custom-control-input" id="customControlInline">
-								<label class="custom-control-label" for="customControlInline">Remember me</label>
+								<input type="checkbox" name="rememberMe" class="custom-control-input" id="rememberMe" <?php if(isset($_COOKIE["username"])) { echo "checked"; } ?>>
+								<label class="custom-control-label" for="rememberMe">Remember me</label>
 							</div>
 						</div>
 						<div class="d-flex justify-content-center mt-3 login_container">
@@ -85,7 +96,7 @@
 						Don't have an account? <a href="signup.php" class="ml-2">Sign Up</a>
 					</div>
 					<div class="d-flex justify-content-center links">
-						<a href="#">Forgot your password?</a>
+						<a href="forgot-password.php">Forgot your password?</a>
 					</div>
 				</div>
 			</div>

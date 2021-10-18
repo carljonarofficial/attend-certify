@@ -9,6 +9,7 @@ $(document).ready(function() {
 	// Fetch selected event for certificate data
     $("#selectEvent").change(function() {
     	document.getElementById("main-cerficate-validate").style.display = "initial";
+    	var loadEventFlag = true;
     	lastResult = "";
     	currentEventID = $("#selectEvent").val();
     	currentEventTitle = $( "#selectEvent option:selected" ).text();
@@ -19,16 +20,19 @@ $(document).ready(function() {
 	        "serverSide":true,
 	        "order":[],
 	        "ajax":{
-	        	url:"certificate-action.php",
+	        	url:"certificate-action",
 	        	type:"POST",
 	            data:{
 	            	certificateAction:'listCertificate',
 	            	eventID: currentEventID
 	            },
-	            dataType:"json",
 	            beforeSend: function(){
-                    $("#loadingModal").modal('show');
+	            	if (loadEventFlag == true) {
+	            		$("#loadingModal").modal('show');
+	            		loadEventFlag = false;
+	            	}
                 },
+	            dataType:"json",
                 complete: function(data) {
                 	$("#loadingModal").modal('hide');
                 	statusSnackBar.style.backgroundColor = "#5cb85c";
@@ -43,22 +47,29 @@ $(document).ready(function() {
 		            $("#certificateDateTime").css("width", "16%");
 		            $("#certificateSend").css("width", "10%");
 		            document.getElementById("totalCertificates").innerText = data.responseJSON.recordsTotal;
-		            displayStatusSnackBar();
 		        },
 		        error: function (jqXHR, textStatus, errorThrown) {
-	                $("#loadingModal").modal('hide');
+		        	$("#loadingModal").modal('hide');
 	                statusSnackBar.style.backgroundColor = "#d9534f";
                     statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Load Error';
-                    displayStatusSnackBar();
 	            }
 	        },
 	        "columnDefs":[
 	            {
-	                "targets":[0, 1, 2, 3, 4, 5, 6],
+	                "targets":[0, 6],
 	                "orderable":false
 	            }
 	        ],
-	        "searching": false,
+	        'columns': [
+	            { data: "view" },
+	            { data: "row_num" },
+	            { data: "invitee_name" },
+	            { data: "invitee_code" },
+	            { data: "certificate_code" },
+	            { data: "datetime_generated" },
+	            { data: "send" }
+	         ],
+	        // "searching": false,
 	        "pageLength": 10,
 	        "dom": 'Bfrtip',
 	        "buttons": [
@@ -96,16 +107,94 @@ $(document).ready(function() {
 	                        title: $("#selectEvent option:selected").text() + " Certificates List"
 	                    }
 	                ]
+	            },
+	            {
+	                text: '<i class="fas fa-cog"></i> Options',
+	                className: "float-left",
+	                action: function () {
+	                	$.ajax({
+	                		url: "certificate-action",
+	                		method: "POST",
+	                		data:{
+	                			certificateAction: 'getCertConfig',
+	                			eventID: currentEventID
+	                		},
+	                		dataType:"json",
+	                		beforeSend: function() {
+								$("#loadingModal").modal('show');
+							},
+							success: function(data) {
+								// Set Certificate Orienation
+								if (data.certOrientation == 'L'){
+									$('#certOrientation').val("L");
+								} else {
+									$('#certOrientation').val("P");
+								}
+								// Set Certificate Size
+								if (data.certSize == 'Letter'){
+									$('#certSize').val("Letter");
+								} else if (data.certSize == 'A4'){
+									$('#certSize').val("A4");
+								} else if (data.certSize == 'A3'){
+									$('#certSize').val("A3");
+								} else if (data.certSize == 'A5'){
+									$('#certSize').val("A5");
+								} else {
+									$('#certSize').val("Legal");
+								}
+								// Set Certificate Font
+								if (data.certTextFont == 'Helvetica') {
+									$('#certFont').val("Helvetica");
+								} else if (data.certTextFont == 'Courier') {
+									$('#certFont').val("Courier");
+								} else {
+									$('#certFont').val("Times");
+								}
+								// Set Certificate Font Style
+								if (data.certTextFontStyle == 'B') {
+									$('#certFontStyle').val("B");
+								} else if (data.certTextFontStyle == 'I') {
+									$('#certFontStyle').val("I");
+								} else if (data.certTextFontStyle == 'U') {
+									$('#certFontStyle').val("U");
+								} else {
+									$('#certFontStyle').val("");
+								}
+								// Set Certificate Font Size
+								$('#certFontSize').val(data.certTextFontSize);
+								// Set Certificate Font Color
+								$('#certFontColor').val(data.certTextFontColor);
+								// Set Certificate Text Positions
+								$('#certTextPositionX').val(data.certTextPositionX);
+								$('#certTextPositionY').val(data.certTextPositionY);
+								// Set Certificate Barcode Positions
+								$('#certBarcodePositionX').val(data.certBarcodePositionX);
+								$('#certBarcodePositionY').val(data.certBarcodePositionY);
+								// Hide Load Modal
+								$("#loadingModal").modal('hide');
+								// Show Certificate Options Modal
+								$("#certOptionsModal").modal('show');
+							}
+				    	})
+				    	.fail(function() {
+				    		$("#loadingModal").modal('hide');
+				    		statusSnackBar.style.backgroundColor = "#d9534f";
+				            statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Load Error';
+				            displayStatusSnackBar();
+				    	});
+	                	
+	                }
 	            }
 	        ]
     	});
+		displayStatusSnackBar();
     });
 
     // View Certificate Modal
     $("#certificateList").on('click', '.viewCertificate', function(){
     	var inviteeCode = $(this).attr("id");
     	$.ajax({
-			url:"certificate-action.php",
+			url:"certificate-action",
             method:"POST",
             data:{
             	certificateAction: 'getCertificate',
@@ -115,6 +204,7 @@ $(document).ready(function() {
             dataType:"json",
 			beforeSend: function() {
 				$("#loadingModal").modal('show');
+				$('#certificateFile').attr("src",'');
 			},
 			success: function(data) {
 				$("#loadingModal").modal('hide');
@@ -136,7 +226,7 @@ $(document).ready(function() {
     $("#certificateList").on('click', '.sendCertificate', function() {
     	var inviteeCode = $(this).attr("id");
     	$.ajax({
-            url:"certificate-action.php",
+            url:"certificate-action",
             method:"POST",
             data:{
             	certificateAction: 'sendCertificate',
@@ -166,6 +256,77 @@ $(document).ready(function() {
             statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Send Error';
             displayStatusSnackBar();
         });
+    });
+
+    // Get Preview Certificate
+    $("#certOptionsModal").on('click', "#previewCertificateBtn", function () {
+    	var inviteeCode = $(this).attr("id");
+    	$.ajax({
+			url:"certificate-action",
+            method:"POST",
+            data:{
+            	certificateAction: 'getPreviewCertificate',
+            	eventID: currentEventID,
+            	certLayout: $('#certOrientation').val() + "-" + $('#certSize').val(),
+	            certTextStyle: $('#certFont').val() + "-" + $('#certFontStyle').val() + "-" + $('#certFontSize').val(),
+	            certTextFontColor: $('#certFontColor').val(),
+	            certTextPosition: $('#certTextPositionX').val() + "," + $('#certTextPositionY').val(),
+	            certBarcodePosition:  $('#certBarcodePositionX').val() + "," + $('#certBarcodePositionY').val(),
+            },
+            dataType:"json",
+			beforeSend: function() {
+				$("#loadingModal").modal('show');
+				$('#previewCertFile').attr("src",'');
+			},
+			success: function(data) {
+				$("#loadingModal").modal('hide');
+				$('#previewCertFile').attr("src",'data:application/pdf;base64,' + data.base64CERT);
+				$("#previewCertConfigModal").modal('show');
+			}
+    	})
+    	.fail(function() {
+    		$("#loadingModal").modal('hide');
+    		statusSnackBar.style.backgroundColor = "#d9534f";
+            statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Load Error';
+            displayStatusSnackBar();
+    	});
+
+    });
+
+    // Save Certificate Config
+    $("#certOptionsModal").on('submit','#certificateOptionForm', function(event){
+    	event.preventDefault();
+    	$.ajax({
+			url:"certificate-action",
+            method:"POST",
+            data:{
+            	certificateAction: 'saveCertConfig',
+            	eventID: currentEventID,
+	            certLayout: $('#certOrientation').val() + "-" + $('#certSize').val(),
+	            certTextStyle: $('#certFont').val() + "-" + $('#certFontStyle').val() + "-" + $('#certFontSize').val(),
+	            certTextFontColor: $('#certFontColor').val(),
+	            certTextPosition: $('#certTextPositionX').val() + "," + $('#certTextPositionY').val(),
+	            certBarcodePosition:  $('#certBarcodePositionX').val() + "," + $('#certBarcodePositionY').val(),
+            },
+            dataType:"json",
+			beforeSend: function() {
+				$("#loadingModal").modal('show');
+			},
+			success: function(data) {
+				$("#loadingModal").modal('hide');
+				$("#certOptionsModal").modal('hide');
+            	statusSnackBar.style.backgroundColor = "#5cb85c";
+                statusSnackBar.innerHTML = '<i class="fas fa-check"></i> Config Successfully';
+	            displayStatusSnackBar();
+			}
+    	})
+    	.fail(function() {
+    		$("#loadingModal").modal('hide');
+    		$("#certOptionsModal").modal('hide');
+    		statusSnackBar.style.backgroundColor = "#d9534f";
+            statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Config Error';
+            displayStatusSnackBar();
+    	});
     });
 
     // Show status snackback
@@ -206,7 +367,7 @@ $(document).ready(function() {
                 lastResult = decodedText;
                 jQuery(function($) {
                     $.ajax({
-                        url: "certificate-action.php",
+                        url: "certificate-action",
                         method: "POST",
                         dataType: "json",
                         data: {

@@ -57,6 +57,13 @@
         #snackbar.show {
             visibility: visible;
         }
+        .form-control-custom {
+            display: initial;
+            width: 5rem;
+        }
+        .modal {
+            overflow-y: auto;
+        }
     </style>
     <!-- Datatables Styles -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
@@ -74,7 +81,7 @@
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/buttons.print.min.js"></script>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')" class="d-flex flex-column">
+<body class="d-flex flex-column">
     <?php 
         // Initialize Active Page for Navbar Highlight
         $activePage = "certificates";
@@ -197,7 +204,142 @@
                             </div>
                         </div>
                     </div>
-                </div>    
+                </div>
+                <!-- The certificate options modal -->
+                <div  id="certOptionsModal" class="modal" data-backdrop="static" data-keyboard="false" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document" style="max-width: 600px;">
+                        <div class="modal-content border-form-override">
+                            <div class="modal-header bg-primary add-edit-invitee-override">
+                                <h5 class="modal-title text-light add-edit-invitee-title" id="exampleAddEditInvitee"><i class="fas fa-cog"></i> Options</h5>
+                                <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <form method="post" id="certificateOptionForm" onsubmit="return optionConfigInputValidation()">
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <label for="certLayout" class="label-add-edit-event">Certificate Layout:</label>
+                                                <div class="p-2 time-event">
+                                                    <div class="form-group">
+                                                        <label for="certOrientation" class="label-add-edit-event">
+                                                            Orientation:
+                                                        </label>
+                                                        <select class="form-control" name="certOrientation" id="certOrientation">
+                                                            <option value='L' selected>Landscape</option>
+                                                            <option value='P'>Portrait</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="certSize" class="label-add-edit-event">
+                                                            Size:
+                                                        </label>
+                                                        <select class="form-control" name="certSize" id="certSize">
+                                                            <option value='Letter' selected>Letter</option>
+                                                            <option value='A4'>A4</option>
+                                                            <option value='A3'>A3</option>
+                                                            <option value='A5'>A5</option>
+                                                            <option value='Legal'>Legal</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="certBarcodePosition" class="label-add-edit-event">
+                                                    Barcode Position:
+                                                </label>
+                                                <div class="form-group">
+                                                    <label for="certBarcodePositionX">X:</label>
+                                                    <input type="number" class="form-control form-control-custom" id="certBarcodePositionX" name="certBarcodePositionX" min="0" max="300" value="20">
+                                                    <label for="certBarcodePositionY">Y:</label>
+                                                    <input type="number" class="form-control form-control-custom" id="certBarcodePositionY" name="certBarcodePositionY" min="0" max="300" value="169">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <div class="form-group">
+                                                <label for="certLayout" class="label-add-edit-event">Certificate Text Style:</label>
+                                                <div class="p-2 time-event">
+                                                    <div class="form-group">
+                                                        <label for="certFont" class="label-add-edit-event">
+                                                            Font:
+                                                        </label>
+                                                        <select class="form-control" name="certFont" id="certFont">
+                                                            <option value='Helvetica' selected>Helvetica</option>
+                                                            <option value='Courier'>Courier</option>
+                                                            <option value='Times'>Times</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="certFontStyle" class="label-add-edit-event">
+                                                            Style:
+                                                        </label>
+                                                        <select class="form-control" name="certFontStyle" id="certFontStyle">
+                                                            <option value='' selected>Regular</option>
+                                                            <option value='B'>Bold</option>
+                                                            <option value='I'>Italic</option>
+                                                            <option value='U'>Underline</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="certFontSize" class="label-add-edit-event">
+                                                            Size (8-72):
+                                                        </label>
+                                                        <input type="number" class="form-control form-control-custom" id="certFontSize" name="certFontSize" min="8" max="72" value="30">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="certFontColor" class="label-add-edit-event">
+                                                            Color:
+                                                        </label>
+                                                        <input type="color" class="form-control form-control-custom" id="certFontColor" name="certFontColor" value="#000000" style="padding: 0.1rem;">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="certTextPosition" class="label-add-edit-event">
+                                                            Position:
+                                                        </label>
+                                                        <div class="form-group">
+                                                            <label for="certTextPositionX">X:</label>
+                                                            <input type="number" class="form-control form-control-custom" id="certTextPositionX" name="certTextPositionX" min="0" max="300" value="130">
+                                                            <label for="certTextPositionY">Y:</label>
+                                                            <input type="number" class="form-control form-control-custom" id="certTextPositionY" name="certTextPositionY" min="0" max="300" value="79">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fa fa-times"></i> Cancel</button>
+                                    <button type="button" class="btn btn-primary" id="previewCertificateBtn"><i class="fa fa-eye"></i> Preview</button>
+                                    <button type="submit" class="btn btn-success" name="certificateOptionSave" value="Save" id="certificateOptionSave"><i class="fas fa-save"></i> Save</button>
+                                </div>
+                            </form>                 
+                        </div>
+                    </div>
+                </div>
+                <!-- Preview Certificate Config Modal -->
+                <div class="modal" id="previewCertConfigModal" tabindex="-1" role="dialog" aria-labelledby="viewModalTitle" aria-hidden="true" data-backdrop="static">
+                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary">
+                                <h4 class="modal-title text-light" id="viewCertificateModalTitleName">Preview Certificate</h5>
+                                <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="embed-responsive embed-responsive-16by9">
+                                    <iframe id="previewCertFile" class="embed-responsive-item" src="" allowfullscreen></iframe>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times"></i> Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -241,6 +383,39 @@
                     certificateBtnFlag = true;
                 }
             }
+        }
+
+        // Option Config Input Validation
+        function optionConfigInputValidation(){
+            var valid = true;
+
+            var certBarcodePositionX = $("#certBarcodePositionX").val();
+            var certBarcodePositionY = $("#certBarcodePositionY").val();
+            var certFontSize = $("#certFontSize").val();
+            var certTextPositionX = $("#certTextPositionX").val();
+            var certTextPositionY = $("#certTextPositionY").val();
+
+            if(certBarcodePositionX.trim() == ""){
+                $("#certBarcodePositionX").val("0");
+                valid = false;
+            }
+            if(certBarcodePositionY.trim() == ""){
+                $("#certBarcodePositionY").val("0");
+                valid = false;
+            }
+            if(certFontSize.trim() == ""){
+               $("#certFontSize").val("8");
+                valid = false;
+            }
+            if(certTextPositionX.trim() == ""){
+                $("#certTextPositionX").val("0");
+                valid = false;
+            }
+            if(certTextPositionY.trim() == ""){
+                $("#certTextPositionY").val("0");
+                valid = false;
+            }
+            return valid;
         }
     </script>
 </body>

@@ -1,0 +1,24 @@
+# Redirect to Custom Error Pages
+ErrorDocument 404 /attend-certify/error.php?code=404
+ErrorDocument 403 /attend-certify/error.php?code=403
+
+# Disable Directory Browsing
+Options -Indexes
+
+# Turn on RewriteEngine
+RewriteEngine on
+
+# Deny Access to all PDF files but only PHP script allowed
+RewriteCond %{THE_REQUEST} \.pdf[?\s] [NC]
+RewriteCond %{HTTP_REFERER} !^http://(www\.)?localhost [NC] 
+RewriteRule ^.* /attend-certify/error.php?code=403 [R,L]
+
+# Remove .php file extension
+RewriteCond %{THE_REQUEST} /([^.]+)\.php [NC]
+RewriteRule ^ /%1 [NC,L,R]
+ 
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^ %{REQUEST_URI}.php [NC,L]
+
+# RewriteCond %{HTTP_REFERER} !^https?://(127.0.0.1) [NC]
+# RewriteRule ^certificate-templates/. - [L,F]

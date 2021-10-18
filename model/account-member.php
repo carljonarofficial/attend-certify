@@ -16,8 +16,11 @@
 		public function isUsernameExists($username)
 		{
 			include 'dbConnection.php';
-			$sql = "SELECT * FROM `admin_accounts` WHERE `username` = '$username'";
-			$result = $conn->query($sql);
+			$usernameStmt = $conn->prepare("SELECT * FROM `admin_accounts` WHERE `username` = ? AND `status` = 1");
+		    $usernameStmt->bind_param('s', $username);
+		    $usernameStmt->execute();
+		    $result =  $usernameStmt->get_result();
+		    $usernameStmt->close();
 			if ($result->num_rows > 0) {
 				$result = true;
 			}else{
@@ -35,8 +38,11 @@
 		public function isEmailExists($email)
 		{
 			include 'dbConnection.php';
-			$sql = "SELECT * FROM `admin_accounts` WHERE `email` = '$email'";
-			$result = $conn->query($sql);
+			$emailStmt = $conn->prepare("SELECT * FROM `admin_accounts` WHERE `email` = ? AND `status` = 1");
+		    $emailStmt->bind_param('s', $email);
+		    $emailStmt->execute();
+		    $result =  $emailStmt->get_result();
+		    $emailStmt->close();
 			if ($result->num_rows > 0) {
 				$result = true;
 			}else{
@@ -72,8 +78,10 @@
         		}
         		$username = $_POST["username"];
         		$email = $_POST["email"];
-        		$query = "INSERT INTO `admin_accounts`(`username`, `password`, `email`) VALUES ('$username','$hashedPassword','$email')";
-        		if ($conn->query($query) === TRUE) {
+        		$addAccountStmt = $conn->prepare("INSERT INTO `admin_accounts`(`username`, `password`, `email`) VALUES (?,?,?)");
+        		$addAccountStmt->bind_param("sss", $username, $hashedPassword, $email);
+        		if ($addAccountStmt->execute()) {
+        			$addAccountStmt->close();
         			session_start();
 		            $_SESSION["sign-up-validation-msg"] = "success";
 		            session_write_close();
@@ -91,8 +99,11 @@
 		public function getMember($username)
 	    {
 	    	include 'dbConnection.php';
-	        $sql = "SELECT * FROM `admin_accounts` WHERE `username` = '$username'";
-	        $result = $conn->query($sql);
+	    	$accountStmt = $conn->prepare("SELECT * FROM `admin_accounts` WHERE `username` = ? AND `status` = 1");
+		    $accountStmt->bind_param('s', $username);
+		    $accountStmt->execute();
+		    $result =  $accountStmt->get_result();
+		    $accountStmt->close();
 			if ($result->num_rows > 0){
 				// output data of each row
                 while($row = $result->fetch_assoc())
@@ -133,8 +144,14 @@
 	            $_SESSION["ID"] = $memberRecord[0]["ID"];
 	            $_SESSION["username"] = $memberRecord[0]["username"];
 	            $_SESSION["email"] = $memberRecord[0]["email"];
-	            // $_SESSION["password"] = $memberRecord[0]["password"];
-	            // $_SESSION["remember"];
+	            // Set Remember Me Cookie If checked
+	            if ($_POST["rememberMe"]) {
+	            	setcookie ("username",$memberRecord[0]["username"],time()+ 86400);
+	            	setcookie ("password",$_POST["login-password"],time()+ 86400);
+	            } else {
+	            	setcookie("username","");
+					setcookie("password","");
+	            }
 	            session_write_close();
 	            $url = "./home.php";
 	            header("Location: $url");

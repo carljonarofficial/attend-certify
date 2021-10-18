@@ -30,7 +30,7 @@
         // the include or require statement takes all the text/code/markup that exists in the specified file
     ?>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')"  class="d-flex flex-column" onload="defaultDate()">
+<body class="d-flex flex-column" onload="defaultDate()">
 	<?php 
         // Initialize Active Page for Navbar Highlight
         $activePage = "events";
@@ -50,11 +50,17 @@
             </div>
             <!-- Validate if add event is failed -->
             <?php
-            	if (!empty($eventcrud_msg)) { ?>
-            		<div class="w-100 p-3 mt-3 shadow-sm rounded bg-danger text-light response">
-	                    <h4>ADD EVENT FAILED</h4>
-	                </div>
-            	<?php }
+	            if (!empty($eventcrud_msg)) {
+	            	if ($eventcrud_msg == "existing") { ?>
+	            		<div class="w-100 p-3 mt-3 shadow-sm rounded bg-warning text-light response">
+		                    <h4>YOUR DATE AND TIME HAVE EXISITING EVENT, PLEASE SET NEW ONE</h4>
+		                </div>
+	            	<?php } else { ?>
+	            		<div class="w-100 p-3 mt-3 shadow-sm rounded bg-danger text-light response">
+		                    <h4>ADD EVENT FAILED</h4>
+		                </div>
+	            	<?php }
+	            }
             ?>
             <!-- Cancel Add Event Button -->
             <div class="mt-3">
@@ -125,7 +131,7 @@
 			                    <input type="file" name="certAttachment" id="certAttachment">
 			                </div>
 			                <div class="form-group text-center">
-			                	<button type="submit" name="addevent-btn" id="addevent-btn" value="Add Event" class="btn btn-success btn-lg rounded-pill"><i class="fa fa-plus-circle"></i> Add Event</button>
+			                	<button type="submit" name="addevent-btn" id="addevent-btn" value="Add Event" class="btn btn-success btn-lg rounded-pill"><i class="fas fa-save"></i> Save Event</button>
 			                </div>
                         </div>
                     </div>
@@ -156,6 +162,7 @@
 
 			document.getElementById("eventDate").defaultValue = today;
 		}
+
 		// Time input validation for inclusive
 		function timeValidationInclusive() {
 			var time = document.getElementById("inclusiveTime").value;
@@ -171,7 +178,8 @@
 				document.getElementById("inclusiveTime").value = "23:58";
 			}
 		}
-		// Time inpu validation for conclusive
+
+		// Time input validation for conclusive
 		function timeValidationConclusive(){
 			var time = document.getElementById("conclusiveTime").value;
 			var timeInclusive = document.getElementById("inclusiveTime").value;
@@ -186,6 +194,7 @@
 				document.getElementById("conclusiveTime").value = "00:01";
 			}
 		}
+
 		// Add Minutes
 		function addMinutes(time, minsToAdd) {
 		  	function D(J){ 
@@ -195,7 +204,7 @@
 	  		var mins = piece[0]*60 + + piece[1] + + minsToAdd;
 	  		
 		  	return D(mins % (24 * 60) / 60 | 0) + ':' + D(mins % 60);  
-		}  
+		}
 		// Subtract Minutes
 		function subtractMinutes(time, minsToSubtract) {
 		  	function D(J){ 
@@ -205,7 +214,8 @@
 		  	var mins = piece[0]*60 + + piece[1] - minsToSubtract;
 
 		  	return D(mins % (24 * 60) / 60 | 0) + ':' + D(mins % 60);  
-		}  
+		}
+
 		// File Upload Script
 		$("#certAttachment").fileinput({
 	        theme: 'fas',
@@ -214,12 +224,14 @@
 	        showZoom: true,
 	        showClose: false,
 	        dropZoneEnabled: false,
+	        maxFileSize: 20000,
 	        initialPreviewShowDelete: false,
-	        allowedFileExtensions: ['docx', 'pdf', 'jpeg', 'jpg', 'png'],
+	        allowedFileExtensions: ['pdf'],
 	        required:true
 	    }).on('filepreupload', function(event, data, previewId, index) {
 	        alert('The description entered is:\n\n' + ($('#description').val() || ' NULL'));
 	    });
+
 	    // Add event validation
 	    function addEventValidation() {
 	    	var valid = true;

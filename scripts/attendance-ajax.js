@@ -9,7 +9,7 @@ $(document).ready(function(){
         "serverSide":true,
         "order":[],
         "ajax":{
-            url:"attendance-action.php?eventID="+eventID,
+            url:"attendance-action?eventID="+eventID,
             type:"POST",
             data:{attendanceAction:'listAttendance'},
             dataType:"json",
@@ -30,11 +30,19 @@ $(document).ready(function(){
         },
         "columnDefs":[
             {
-                "targets": [0, 1, 2, 3, 4, 5],
+                "targets": [5],
                 "orderable":false,
             }
         ],
-        "searching": false,
+        'columns': [
+            { data: "row_num" },
+            { data: "invitee_name" },
+            { data: "invitee_code" },
+            { data: "type" },
+            { data: "datetime_attendance" },
+            { data: "send" }
+         ],
+        // "searching": false,
         "pageLength": 10,
         "dom": 'Bfrtip',
         "buttons": [
@@ -72,6 +80,83 @@ $(document).ready(function(){
                         title: document.getElementById("current-event-title").innerHTML + " Attendance List"
                     }
                 ]
+            },
+            {
+                text: '<i class="fas fa-cog"></i> Options',
+                className: "float-left",
+                action: function () {
+                    $.ajax({
+                        url: "certificate-action",
+                        method: "POST",
+                        data:{
+                            certificateAction: 'getCertConfig',
+                            eventID: eventID
+                        },
+                        dataType:"json",
+                        beforeSend: function() {
+                            $("#loadingModal").modal('show');
+                        },
+                        success: function(data) {
+                            // Set Certificate Orienation
+                            if (data.certOrientation == 'L'){
+                                $('#certOrientation').val("L");
+                            } else {
+                                $('#certOrientation').val("P");
+                            }
+                            // Set Certificate Size
+                            if (data.certSize == 'Letter'){
+                                $('#certSize').val("Letter");
+                            } else if (data.certSize == 'A4'){
+                                $('#certSize').val("A4");
+                            } else if (data.certSize == 'A3'){
+                                $('#certSize').val("A3");
+                            } else if (data.certSize == 'A5'){
+                                $('#certSize').val("A5");
+                            } else {
+                                $('#certSize').val("Legal");
+                            }
+                            // Set Certificate Font
+                            if (data.certTextFont == 'Helvetica') {
+                                $('#certFont').val("Helvetica");
+                            } else if (data.certTextFont == 'Courier') {
+                                $('#certFont').val("Courier");
+                            } else {
+                                $('#certFont').val("Times");
+                            }
+                            // Set Certificate Font Style
+                            if (data.certTextFontStyle == 'B') {
+                                $('#certFontStyle').val("B");
+                            } else if (data.certTextFontStyle == 'I') {
+                                $('#certFontStyle').val("I");
+                            } else if (data.certTextFontStyle == 'U') {
+                                $('#certFontStyle').val("U");
+                            } else {
+                                $('#certFontStyle').val("");
+                            }
+                            // Set Certificate Font Size
+                            $('#certFontSize').val(data.certTextFontSize);
+                            // Set Certificate Font Color
+                            $('#certFontColor').val(data.certTextFontColor);
+                            // Set Certificate Text Positions
+                            $('#certTextPositionX').val(data.certTextPositionX);
+                            $('#certTextPositionY').val(data.certTextPositionY);
+                            // Set Certificate Barcode Positions
+                            $('#certBarcodePositionX').val(data.certBarcodePositionX);
+                            $('#certBarcodePositionY').val(data.certBarcodePositionY);
+                            // Hide Load Modal
+                            $("#loadingModal").modal('hide');
+                            // Show Certificate Options Modal
+                            $("#certOptionsModal").modal('show');
+                        }
+                    })
+                    .fail(function() {
+                        $("#loadingModal").modal('hide');
+                        statusSnackBar.style.backgroundColor = "#d9534f";
+                        statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Load Error';
+                        displayStatusSnackBar();
+                    });
+                    
+                }
             }
         ]
     });
@@ -83,7 +168,7 @@ $(document).ready(function(){
         "serverSide":true,
         "order":[],
         "ajax":{
-            url:"attendance-action.php?eventID="+eventID,
+            url:"attendance-action?eventID="+eventID,
             type:"POST",
             data:{attendanceAction:'listInvitee'},
             dataType:"json",
@@ -103,13 +188,15 @@ $(document).ready(function(){
                 document.getElementById("totalAbsent").innerText = data.responseJSON.recordsAbsent;
             }
         },
-        "columnDefs":[
-            {
-                "targets":[0, 1, 2, 3, 4, 5],
-                "orderable":false,
-            }
-        ],
-        "searching": false,
+        'columns': [
+            { data: "row_num" },
+            { data: "attendance_status" },
+            { data: "invitee_name" },
+            { data: "invitee_code" },
+            { data: "email" },
+            { data: "phonenum" },
+         ],
+        // "searching": false,
         "pageLength": 10,
         "dom": 'Bfrtip',
         "buttons": [
@@ -151,11 +238,82 @@ $(document).ready(function(){
         ]
     });
 
+    // Get Preview Certificate
+    $("#certOptionsModal").on('click', "#previewCertificateBtn", function () {
+        var inviteeCode = $(this).attr("id");
+        $.ajax({
+            url:"certificate-action",
+            method:"POST",
+            data:{
+                certificateAction: 'getPreviewCertificate',
+                eventID: eventID,
+                certLayout: $('#certOrientation').val() + "-" + $('#certSize').val(),
+                certTextStyle: $('#certFont').val() + "-" + $('#certFontStyle').val() + "-" + $('#certFontSize').val(),
+                certTextFontColor: $('#certFontColor').val(),
+                certTextPosition: $('#certTextPositionX').val() + "," + $('#certTextPositionY').val(),
+                certBarcodePosition:  $('#certBarcodePositionX').val() + "," + $('#certBarcodePositionY').val(),
+            },
+            dataType:"json",
+            beforeSend: function() {
+                $("#loadingModal").modal('show');
+                $('#previewCertFile').attr("src",'');
+            },
+            success: function(data) {
+                $("#loadingModal").modal('hide');
+                $('#previewCertFile').attr("src",'data:application/pdf;base64,' + data.base64CERT);
+                $("#previewCertConfigModal").modal('show');
+            }
+        })
+        .fail(function() {
+            $("#loadingModal").modal('hide');
+            statusSnackBar.style.backgroundColor = "#d9534f";
+            statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Load Error';
+            displayStatusSnackBar();
+        });
+
+    });
+
+    // Save Certificate Config
+    $("#certOptionsModal").on('submit','#certificateOptionForm', function(event){
+        event.preventDefault();
+        $.ajax({
+            url:"certificate-action",
+            method:"POST",
+            data:{
+                certificateAction: 'saveCertConfig',
+                eventID: eventID,
+                certLayout: $('#certOrientation').val() + "-" + $('#certSize').val(),
+                certTextStyle: $('#certFont').val() + "-" + $('#certFontStyle').val() + "-" + $('#certFontSize').val(),
+                certTextFontColor: $('#certFontColor').val(),
+                certTextPosition: $('#certTextPositionX').val() + "," + $('#certTextPositionY').val(),
+                certBarcodePosition:  $('#certBarcodePositionX').val() + "," + $('#certBarcodePositionY').val(),
+            },
+            dataType:"json",
+            beforeSend: function() {
+                $("#loadingModal").modal('show');
+            },
+            success: function(data) {
+                $("#loadingModal").modal('hide');
+                $("#certOptionsModal").modal('hide');
+                statusSnackBar.style.backgroundColor = "#5cb85c";
+                statusSnackBar.innerHTML = '<i class="fas fa-check"></i> Config Successfully';
+                displayStatusSnackBar();
+            }
+        })
+        .fail(function() {
+            $("#loadingModal").modal('hide');
+            $("#certOptionsModal").modal('hide');
+            statusSnackBar.style.backgroundColor = "#d9534f";
+            statusSnackBar.innerHTML = '<i class="fas fa-times-circle"></i> Config Error';
+            displayStatusSnackBar();
+        });
+    });
+
     // Send Email Certificate
     $("#attendanceList").on('click', '.sendCertificate', function() {
         var inviteeCode = $(this).attr("id");
         $.ajax({
-            url:"attendance-action.php?eventID="+eventID,
+            url:"attendance-action?eventID="+eventID,
             method:"POST",
             data:{
                 attendanceAction:'sendCertificate',
@@ -228,7 +386,7 @@ $(document).ready(function(){
                 // console.log(`Scan result: ${decodedText}`, decodedResult);
                 jQuery(function($) {
                     $.ajax({
-                        url: "attendance-action.php?eventID="+eventID,
+                        url: "attendance-action?eventID="+eventID,
                         method: "POST",
                         dataType: "json",
                         data: {

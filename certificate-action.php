@@ -20,4 +20,19 @@
 	    $member = new CertificateMember();
 	    $addResponse = $member->sendCertificate($_POST['inviteeCode'], $_POST['currentEventID']);
 	}
+	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'getCertConfig') {
+	    require_once './model/certificate-member.php';
+	    $member = new CertificateMember();
+	    $addResponse = $member->getCertConfig($_POST['eventID']);
+	}
+	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'getPreviewCertificate') {
+	    require_once './model/certificate-member.php';
+	    $member = new CertificateMember();
+	    $addResponse = $member->getPreviewCertificate($_POST['eventID']);
+	}
+	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'saveCertConfig') {
+	    require_once './model/certificate-member.php';
+	    $member = new CertificateMember();
+	    $addResponse = $member->saveCertConfig($_POST['eventID']);
+	}
 ?>

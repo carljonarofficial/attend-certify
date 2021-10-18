@@ -26,13 +26,23 @@
     // Fetch all event records with limit to display
     $limit = isset($_SESSION['records-limit']) ? $_SESSION['records-limit'] : 5;
     $page = (isset($_GET['page']) && is_numeric($_GET['page']) ) ? $_GET['page'] : 1;
-    $search = isset($_SESSION['searchEvent']) ? $_SESSION['searchEvent']: "";
+    $searchInput = isset($_SESSION['searchEvent']) ? $_SESSION['searchEvent']: '';
+    $searchLength = strlen($searchInput);
+    $search = "$searchInput%";
     $paginationStart = ($page - 1) * $limit;
-    $events = $conn->query("SELECT * FROM `events` WHERE `admin_ID` = $id AND `status` = 1 AND `event_title` LIKE '$search%' LIMIT $paginationStart, $limit");
+    $eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `status` = 1 AND `event_title` LIKE ? LIMIT ?, ?");
+    $eventStmt->bind_param('isii', $id, $search, $paginationStart, $limit);
+    $eventStmt->execute();
+    $events =  $eventStmt->get_result();
+    $eventStmt->close();
 
     // Get the number of records
-    $sql = $conn->query("SELECT COUNT(*) as 'num_row' FROM `events` WHERE `admin_ID` = $id AND `status` = 1 AND `event_title` LIKE '$search%'");
-    while($row = $sql->fetch_assoc())
+    $eventNumsStmt = $conn->prepare("SELECT COUNT(*) as 'num_row' FROM `events` WHERE `admin_ID` = ? AND `status` = 1 AND `event_title` LIKE ?");
+    $eventNumsStmt->bind_param('is', $id, $search);
+    $eventNumsStmt->execute();
+    $eventNums = $eventNumsStmt->get_result();
+    $eventNumsStmt->close();
+    while($row = $eventNums->fetch_assoc())
     {
         $allRecords = $row['num_row'];
     }
@@ -55,16 +65,6 @@
         require_once './model/event-member.php';
         $member = new EventMember();
         $addResponse = $member->deleteEvent();
-    }
-
-    // If the admin click the view event details, then it will proceed here
-    if(!empty($_POST['eventDetails'])) {
-        session_start();
-        unset($_SESSION["event-present-id"]);
-        session_start();
-        $_SESSION["event-present-id"] = $_POST['eventDetails'];
-        session_write_close();
-        header("Location: event-details.php");
     }
 
     // If the admin click scan event attendance, then it will proceed here
@@ -94,7 +94,7 @@
         }
     </style>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')" class="d-flex flex-column" >
+<body class="d-flex flex-column" >
 	<?php 
         // Initialize Active Page for Navbar Highlight
         $activePage = "events";
@@ -134,6 +134,10 @@
                         <div class="w-100 p-3 mt-3 shadow-sm rounded bg-danger text-light response">
                             <h4>EDIT ERROR, PLEASE TRY AGAIN</h4>
                         </div>
+                    <?php } else if ($eventcrud_msg == "existing") {?>
+                        <div class="w-100 p-3 mt-3 shadow-sm rounded bg-warning text-light response">
+                            <h4>YOUR DATE AND TIME HAVE EXISITING EVENT, PLEASE SET NEW ONE</h4>
+                        </div>
                     <?php }
                 }
             ?>
@@ -145,9 +149,9 @@
                 <div class="row">
                     <!-- Search Event -->
                     <div class="col-sm-4 mt-3 mr-3">
-                        <form action="events.php" method="post">
+                        <form action="events" method="post">
                             <div class="input-group ml-3">
-                                <input type="text" class="form-control" placeholder="Search Event" name="searchEvent" id="searchEvent" value="<?php if(strlen($search) > 0){ echo $search;}?>">
+                                <input type="text" class="form-control" placeholder="Search Event" name="searchEvent" id="searchEvent" value="<?php if($searchLength > 0){ echo $searchInput;}?>">
                                 <div class="input-group-append">
                                     <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i></button>
                                 </div>
@@ -179,10 +183,10 @@
             </div>
             <div class="container event-container">
                 <?php
-                    if(strlen($search) > 0){?>
+                    if($searchLength > 0){?>
                         <!-- Clear Search Button -->
                         <div class="mt-3">
-                            <form action="events.php" method="post">
+                            <form action="events" method="post">
                                 <input type="hidden" class="form-control" placeholder="Search Event" name="searchEvent" id="searchEvent" value="">
                                 <button class="ml-3 h6 btn btn-danger rounded-pill" type="submit"><i class="fas fa-times"></i> CLEAR SEARCH</button>
                             </form>
@@ -199,7 +203,7 @@
                                     <div class="col-lg-3 col-sm-6">
                                         <div class="card hovercard shadow-sm">
                                             <div class="card-header p-0">
-                                                <img class="card-img-top" src="img/assets/modern_01.jpg" alt="Card image cap">
+                                                <img class="card-img-top" src="img/assets/card_01.png" alt="Card image cap">
                                             </div>
                                             <div class="card-body info bg-light">
                                                 <div class="card-title text-left font-weight-bolder">
@@ -217,12 +221,8 @@
                                             </div>
                                             <div class="card-footer event-footer row align-items-center justify-content-center">
                                                 <div>
-                                                    <form action="" method="post">
-                                                        <button type="submit" name="scanAttendance" id="scanAttendance" value="<?php echo $row['ID'];?>" class="btn btn-success h5" style="width: 95px;"><i class="fas fa-barcode"></i> Scan</button>
-                                                    </form>
-                                                    <form action="edit-event.php" method="post">
-                                                        <button type="submit" class="btn btn-warning h5" name="edit-event" value="<?php echo $row['ID'];?>" style="width: 95px;"><i class="fas fa-edit"></i> Edit</button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-success h5" style="width: 95px;" onclick="location.href='./scan-attendance.php?eventID=<?php echo $row['ID']?>';"><i class="fas fa-barcode"></i> Scan</button><br>
+                                                    <button type="button" class="btn btn-warning h5" style="width: 95px;" onclick="location.href='./edit-event.php?eventID=<?php echo $row['ID']?>';"><i class="fas fa-edit"></i> Edit</button><br>
                                                     <button type="button" class="btn btn-danger h5" data-toggle="modal" data-target="#deleteModal<?php echo $increment; ?>" style="width: 95px;"><i class="fas fa-trash"></i> Delete</button>
                                                 </div>
                                             </div>
@@ -301,6 +301,10 @@
                                                                         <h5><i class="fa fa-quote-left"></i> Theme:</h5>
                                                                         <p><?php echo $row['theme'];?></p>
                                                                     </div>
+                                                                    <div class="form-group">
+                                                                         <h5><i class="fas fa-hourglass-start"></i> Date and Time Added:</h5>
+                                                                         <p><?php echo date_format(date_create($row['datetime_added']),"M d, Y h:iA");?></p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -308,9 +312,7 @@
                                                 </div>
                                                 <div class="modal-footer">
                                                     <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times"></i> Close</button>
-                                                    <form action="" method="post">
-                                                        <button type="submit" name="eventDetails" id="eventDetails" value="<?php echo $row['ID'];?>" class="btn btn-primary"><i class="fas fa-eye"></i> View Details</button>
-                                                    </form>
+                                                    <button type="button" name="eventDetails" id="eventDetails" class="btn btn-primary" onclick="location.href='./event-details.php?eventID=<?php echo $row['ID']?>';"><i class="fas fa-eye"></i> View Details</button>
                                                 </div>
                                             </div>
                                         </div>

@@ -24,11 +24,20 @@
     		include 'dbConnection.php';
 
     		// SQL Query
-    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `attendance`.`datetime_attendance` ASC)) AS `row_num`, CONCAT(`invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename`) AS `invitee_name`, `invitees`.invitee_code, `invitees`.type, `attendance`.datetime_attendance FROM `attendance`, `invitees`, (SELECT @row_number:=0) AS `row_temp` WHERE `attendance`.`event_ID` = $currentEventID AND `attendance`.invitee_code = `invitees`.invitee_code ";
+    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `attendance`.`datetime_attendance` ASC)) AS `row_num`, CONCAT(`invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename`) AS `invitee_name`, `invitees`.invitee_code, `invitees`.type, `attendance`.datetime_attendance FROM `attendance`, `invitees`, (SELECT @row_number:=0) AS `row_temp` WHERE `attendance`.`event_ID` = ? AND `attendance`.invitee_code = `invitees`.invitee_code ";
+
+    		// For Search Query
+    		if(!empty($_POST["search"]["value"])){
+    			$sqlQuery .= "AND (`invitees`.`firstname` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`middlename` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`lastname` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`invitee_code` LIKE '".$_POST["search"]["value"]."%') ";
+    		}
 
     		// Order Query
     		if (!empty($_POST["order"])) {
-    			$sqlQuery .= 'ORDER BY '.$_POST['order']['0']['column'].' '.$_POST['order']['0']['dir'].' ';
+    			$columnIndex = $_POST['order'][0]['column']; // Column index
+    			$sqlQuery .= 'ORDER BY '.$_POST['columns'][$columnIndex]['data'].' '.$_POST['order']['0']['dir'].' ';
     		} else{
     			$sqlQuery .= 'ORDER BY `row_num` ASC ';
     		}
@@ -38,13 +47,22 @@
 				$sqlQuery .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
 			}
 
+			// echo $sqlQuery;
+
 			// Fetch up a list of attendance
-			$attendanceList = $conn->query($sqlQuery);
+			$attendanceStmt = $conn->prepare($sqlQuery);
+		    $attendanceStmt->bind_param('i', $currentEventID);
+		    $attendanceStmt->execute();
+		    $attendanceList =  $attendanceStmt->get_result();
+		    $attendanceStmt->close();
 
 			// Fetch up number of rows
-			$sqlNumQuery = "SELECT * FROM attendance WHERE event_ID = $currentEventID";
-			$numAttendance = $conn->query($sqlNumQuery);
-			$numRows = mysqli_num_rows($numAttendance);
+			$attendanceNumStmt = $conn->prepare("SELECT * FROM attendance WHERE event_ID = ?");
+		    $attendanceNumStmt->bind_param('i', $currentEventID);
+		    $attendanceNumStmt->execute();
+		    $attendanceNumList =  $attendanceNumStmt->get_result();
+		    $attendanceNumStmt->close();
+			$numRows = mysqli_num_rows($attendanceNumList);
 
 			// Number of Filtered Records
 			$numFiltered = 0;
@@ -52,13 +70,14 @@
 			// Save into array
 			$attendanceData = array();
 	        while ($row = $attendanceList->fetch_assoc()) {
-	        	$ivtRows = array();
-	        	$ivtRows[] = $row["row_num"];
-	        	$ivtRows[] = $row["invitee_name"];
-	        	$ivtRows[] = $row["invitee_code"];
-	        	$ivtRows[] = $row["type"];
-	        	$ivtRows[] = $row["datetime_attendance"];
-	        	$ivtRows[] = '<button type="button" name="sendEmailCertificate" id="'.$row["invitee_code"].'" class="btn btn-success btn-xs sendCertificate w-100"><i class="fas fa-envelope"></i> Send Certificate</button>';
+	        	$ivtRows = array(
+	        		"row_num" => $row["row_num"],
+	        		"invitee_name" => $row["invitee_name"],
+	        		"invitee_code" => $row["invitee_code"],
+	        		"type" => $row["type"],
+	        		"datetime_attendance" => $row["datetime_attendance"],
+	        		"send" => '<button type="button" name="sendEmailCertificate" id="'.$row["invitee_code"].'" class="btn btn-success btn-xs sendCertificate w-100"><i class="fas fa-envelope"></i> Send Certificate</button>',
+	        	);
 	        	$attendanceData[] = $ivtRows;
 	        	$numFiltered++;
 	        }
@@ -80,11 +99,20 @@
     		include 'dbConnection.php';
 
     		// SQL Query
-    		$sqlQuery = "SELECT (@row_number:=@row_number + 1) AS `row_num`, (SELECT COUNT(*) FROM attendance WHERE attendance.invitee_code = invitees.invitee_code) AS `attendance_status`, CONCAT(`lastname`, ', ', `firstname`, ' ', `middlename`, ' (', `type`, ')') AS `invitee_name`, `invitee_code`, `email`, `phonenum` FROM invitees, (SELECT @row_number:=0) AS row_temp WHERE `event_ID` = $currentEventID ";
+    		$sqlQuery = "SELECT (@row_number:=@row_number + 1) AS `row_num`, (SELECT COUNT(*) FROM attendance WHERE attendance.invitee_code = invitees.invitee_code) AS `attendance_status`, CONCAT(`lastname`, ', ', `firstname`, ' ', `middlename`, ' (', `type`, ')') AS `invitee_name`, `invitee_code`, `email`, `phonenum` FROM invitees, (SELECT @row_number:=0) AS row_temp WHERE `event_ID` = ? AND `status` = 1 ";
+
+    		// For Search Query
+    		if(!empty($_POST["search"]["value"])){
+    			$sqlQuery .= "AND (`invitees`.`firstname` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`middlename` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`lastname` LIKE '".$_POST["search"]["value"]."%' ";
+    			$sqlQuery .= "OR `invitees`.`invitee_code` LIKE '".$_POST["search"]["value"]."%') ";
+    		}
 
     		// Order Query
     		if (!empty($_POST["order"])) {
-    			$sqlQuery .= 'ORDER BY '.$_POST['order']['0']['column'].' '.$_POST['order']['0']['dir'].' ';
+    			$columnIndex = $_POST['order'][0]['column']; // Column index
+    			$sqlQuery .= 'ORDER BY '.$_POST['columns'][$columnIndex]['data'].' '.$_POST['order']['0']['dir'].' ';
     		} else{
     			$sqlQuery .= 'ORDER BY `row_num` ASC ';
     		}
@@ -94,36 +122,58 @@
 				$sqlQuery .= 'LIMIT ' . $_POST['start'] . ', ' . $_POST['length'];
 			}
 
-			// Fetch up a list of attendance
-			$attendanceList = $conn->query($sqlQuery);
+			// Fetch up a list of invitees
+			$inviteeStmt = $conn->prepare($sqlQuery);
+		    $inviteeStmt->bind_param('i', $currentEventID);
+		    $inviteeStmt->execute();
+		    $inviteeList =  $inviteeStmt->get_result();
+		    $inviteeStmt->close();
 
 			// Fetch up number of rows in invitees table
-			$sqlNumQuery = "SELECT * FROM `invitees` WHERE `event_ID` = $currentEventID";
-			$numAttendance = $conn->query($sqlNumQuery);
-			$numRows = mysqli_num_rows($numAttendance);
+			$inviteeNumStmt = $conn->prepare("SELECT * FROM `invitees` WHERE `event_ID` = ?");
+		    $inviteeNumStmt->bind_param('i', $currentEventID);
+		    $inviteeNumStmt->execute();
+		    $inviteeNumList =  $inviteeNumStmt->get_result();
+		    $inviteeNumStmt->close();
+			$numRows = mysqli_num_rows($inviteeNumList);
 
 			// Number of Filtered Records
 			$numFiltered = 0;
 
 			// Save into array
 			$attendanceData = array();
-			$numAbsent = 0;
-	        while ($row = $attendanceList->fetch_assoc()) {
-	        	$ivtRows = array();
-	        	$ivtRows[] = $row["row_num"];
+	        while ($row = $inviteeList->fetch_assoc()) {
+	        	$attendanceStatus = '<div class="p-2 bg-danger text-white text-center rounded" style="width: 70px;">Absent</div>';
 	        	if ($row["attendance_status"] == 1) {
-	        		$ivtRows[] = '<div class="p-2 bg-success text-white text-center rounded" style="width: 70px;">Present</div>';
-	        	}else{
-	        		$ivtRows[] = '<div class="p-2 bg-danger text-white text-center rounded" style="width: 70px;">Absent</div>';
-	        		$numAbsent++;
+	        		$attendanceStatus = '<div class="p-2 bg-success text-white text-center rounded" style="width: 70px;">Present</div>';
 	        	}
-	        	$ivtRows[] = $row["invitee_name"];
-	        	$ivtRows[] = $row["invitee_code"];
-	        	$ivtRows[] = '<a href="mailto:' . $row["email"] . '">' . $row["email"] . '</a>';
-	        	$ivtRows[] = '<a href="tel:' . $row["phonenum"] . '">' . $row["phonenum"] . '</a>';
+	        	$ivtRows = array(
+	        		"row_num" => $row["row_num"],
+		        	"attendance_status" => $attendanceStatus,
+		        	"invitee_name" => $row["invitee_name"],
+		        	"invitee_code" => $row["invitee_code"],
+		        	"email" => '<a href="mailto:' . $row["email"] . '">' . $row["email"] . '</a>',
+		        	"phonenum" => '<a href="tel:' . $row["phonenum"] . '">' . $row["phonenum"] . '</a>',
+	        	);
 	        	$attendanceData[] = $ivtRows;
 	        	$numFiltered++;
 	        }
+
+	        // Number of Absent Invitees
+	        $absentNumStmt = $conn->prepare("SELECT (@row_number:=@row_number + 1) AS `row_num`, (SELECT COUNT(*) FROM attendance WHERE attendance.invitee_code = invitees.invitee_code) AS `attendance_status` FROM invitees WHERE `event_ID` = ? AND `status` = 1");
+		    $absentNumStmt->bind_param('i', $currentEventID);
+		    $absentNumStmt->execute();
+		    $absentNumList =  $absentNumStmt->get_result();
+		    $absentNumStmt->close();
+			$numAbsent = 0;
+			while ($row = $absentNumList->fetch_assoc()) {
+				if ($row["attendance_status"] == 1) {
+					// Present
+				} else {
+					$numAbsent++;
+				}
+			}
+
 	        $output = array(
 				"draw"				=>	intval($_POST["draw"]),
 				"recordsTotal"  	=>  $numRows,
@@ -149,32 +199,44 @@
     		$certficateCode  = date("YmdHis")."-CERT-".strtoupper(substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyz'), 0, 6));
 
     		// SQL Query to scan if the code is registered for the event
-    		$sqlScanQuery = "SELECT * FROM `invitees` WHERE `event_ID` = $currentEventID AND `invitee_code` = '$inviteeCode'";
+    		$sqlScanQuery = "SELECT * FROM `invitees` WHERE `event_ID` = ? AND `invitee_code` = ?";
 
     		// Fetch up the scan result
-    		$scanResult = $conn->query($sqlScanQuery);
+    		$scanStmt = $conn->prepare($sqlScanQuery);
+	        $scanStmt->bind_param('is', $currentEventID, $inviteeCode);
+	        $scanStmt->execute();
+	        $scanResult =  $scanStmt->get_result();
+	        $scanStmt->close();
 
     		if ($scanResult->num_rows > 0) { // If the invitee code registered
 				// SQL Query to check if the code already recorded attendance
-				$sqlCheckQuery = "SELECT * FROM `attendance` WHERE `event_ID` = $currentEventID AND `invitee_code` = '$inviteeCode'";
+				$sqlCheckQuery = "SELECT * FROM `attendance` WHERE `event_ID` = ? AND `invitee_code` = ?";
 
 				// Fetch up the check result
-    			$checkResult = $conn->query($sqlCheckQuery);
+    			$checkStmt = $conn->prepare($sqlCheckQuery);
+		        $checkStmt->bind_param('is', $currentEventID, $inviteeCode);
+		        $checkStmt->execute();
+		        $checkResult =  $checkStmt->get_result();
+		        $checkStmt->close();
 
     			if ($checkResult->num_rows > 0) {
     				// It will output already code message
 					$output = array("scanStatus" => "already");
     			} else {
     				// Insert Attendance Record Query
-					$recordQuery = "INSERT INTO `attendance`(`event_ID`, `invitee_code`) VALUES ('$currentEventID','$inviteeCode');";
+					$recordStmt = $conn->prepare("INSERT INTO `attendance`(`event_ID`, `invitee_code`) VALUES (?,?)");
+					$recordStmt->bind_param("is", $currentEventID, $inviteeCode);
 
 					// Validate if Insert Query is successful or not
-					if ($conn->query($recordQuery) === TRUE) {
+					if ($recordStmt->execute()) {
+						$recordStmt->close();
 						// Insert Certificate Record Query
-						$certQuery = "INSERT INTO `certificate`(`event_ID`, `invitee_code`, `certificate_code`) VALUES ('$currentEventID','$inviteeCode','$certficateCode');";
+						$certStmt = $conn->prepare("INSERT INTO `certificate`(`event_ID`, `invitee_code`, `certificate_code`) VALUES (?,?,?)");
+						$certStmt->bind_param("iss", $currentEventID, $inviteeCode, $certficateCode);
 
 						// Validate if Insert Query is successful or not
-						if ($conn->query($certQuery) === TRUE) {
+						if ($certStmt->execute()) {
+							$certStmt->close();
 							// It will out success message
     						$output = array("scanStatus" => "success");
 						} else {
@@ -187,7 +249,6 @@
     					$output = array("scanStatus" => "error");
 					}
 
-    				// $output = array("scanStatus" => "success");
     			}
     			
 			} else { // If the invitee code not registered
@@ -216,7 +277,11 @@
 			include 'dbConnection.php';
 
 			// Fetch up an event information
-			$eventInfo = $conn->query("SELECT * FROM `events` WHERE `admin_ID` = $id AND `ID` = $currentEventID");
+			$eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ?");
+	        $eventStmt->bind_param('ii', $id, $currentEventID);
+	        $eventStmt->execute();
+	        $eventInfo =  $eventStmt->get_result();
+	        $eventStmt->close();
 	        while ($row = $eventInfo->fetch_assoc()) {
 	            $eventTitle = $row["event_title"];
 	            $eventDate = date_format(date_create($row["date"]),"F d, Y");
@@ -227,7 +292,11 @@
 	        }
 
 	        // Fetch up a certificate information
-	        $certificateInfo = $conn->query("SELECT CONCAT(`invitees`.`firstname`, ' ', `invitees`.`middlename`, ' ', `invitees`.`lastname`) AS `invitee_name`, `invitees`.`email`, `certificate`.`certificate_code` FROM `invitees`, `certificate` WHERE `invitees`.`event_ID` = $currentEventID AND `certificate`.`event_ID` = $currentEventID AND `invitees`.`invitee_code` = '$inviteeCode' AND `certificate`.`invitee_code` = '$inviteeCode'");
+	        $certificateStmt = $conn->prepare("SELECT CONCAT(`invitees`.`firstname`, ' ', `invitees`.`middlename`, ' ', `invitees`.`lastname`) AS `invitee_name`, `invitees`.`email`, `certificate`.`certificate_code` FROM `invitees`, `certificate` WHERE `invitees`.`event_ID` = ? AND `certificate`.`event_ID` = ? AND `invitees`.`invitee_code` = ? AND `certificate`.`invitee_code` = ?");
+	        $certificateStmt->bind_param('iiss', $currentEventID, $currentEventID, $inviteeCode, $inviteeCode);
+	        $certificateStmt->execute();
+	        $certificateInfo =  $certificateStmt->get_result();
+	        $certificateStmt->close();
 	        while ($row = $certificateInfo->fetch_assoc()){
 	        	$certNameInvitee = $row["invitee_name"];
 	        	$certEmailInvitee = $row["email"];

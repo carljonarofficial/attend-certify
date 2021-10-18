@@ -16,22 +16,31 @@
 
     // Check if it fetched correctly from the events page
     $editErrorMsg = "error";
-    if (isset($_POST['edit-event'])) {
-    	$eventID = $_POST['edit-event'];
-    	$eventInfo = $conn->query("SELECT * FROM `events` WHERE `admin_ID` = $id AND `ID` = $eventID");
-    	while ($row = $eventInfo->fetch_assoc()) {
-    		$eventID = $row['ID'];
-			$eventTitle = $row["event_title"];
-			$eventDate = $row["date"];
-			$eventTimeInclusive = $row["time_inclusive"];
-			$eventTimeConclusive = $row["time_conclusive"];
-			$eventVenue = $row["venue"];
-			$eventDesciption = $row["description"];
-			$eventAgenda = $row["agenda"];
-			$eventTheme = $row["theme"];
-			$certTemplate = $row["certificate_template"];
-		}
-    	$editErrorMsg = "success";
+    if (isset($_GET['eventID'])) {
+    	$eventID = $_GET['eventID'];
+    	$eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ? AND `status` = 1");
+	    $eventStmt->bind_param('ii', $id, $eventID);
+	    $eventStmt->execute();
+	    $eventInfo =  $eventStmt->get_result();
+	    $eventStmt->close();
+	    if ($eventInfo->num_rows > 0) {
+		    while ($row = $eventInfo->fetch_assoc()) {
+	    		$eventID = $row['ID'];
+				$eventTitle = $row["event_title"];
+				$eventDate = $row["date"];
+				$eventTimeInclusive = $row["time_inclusive"];
+				$eventTimeConclusive = $row["time_conclusive"];
+				$eventVenue = $row["venue"];
+				$eventDesciption = $row["description"];
+				$eventAgenda = $row["agenda"];
+				$eventTheme = $row["theme"];
+				$certTemplate = $row["certificate_template"];
+				$certTemplateFileSize = filesize("./certificate-templates/".$certTemplate);
+			}
+			$editErrorMsg = "success";
+	    } else {
+	    	$editErrorMsg = "error";
+	    }
     }else{
 		$editErrorMsg = "error";
     }
@@ -55,7 +64,7 @@
         // the include or require statement takes all the text/code/markup that exists in the specified file
     ?>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')"  class="d-flex flex-column">
+<body class="d-flex flex-column">
 	<?php 
         // Initialize Active Page for Navbar Highlight
         $activePage = "events";
@@ -154,7 +163,7 @@
 					                    <input type="file" name="certAttachment" id="certAttachment">
 					                </div>
 					                <div class="form-group text-center">
-					                	<button type="submit" name="editevent-btn" id="editevent-btn" value="Edit Event" class="btn btn-warning btn-lg rounded-pill"><i class="fas fa-edit"></i> Edit Event</button>
+					                	<button type="submit" name="editevent-btn" id="editevent-btn" value="Edit Event" class="btn btn-success btn-lg rounded-pill"><i class="fas fa-save"></i> Save Event</button>
 					                </div>
 		                        </div>
 		                    </div>
@@ -227,6 +236,10 @@
 		  	return D(mins % (24 * 60) / 60 | 0) + ':' + D(mins % 60);  
 		}  
 		// File Upload Script
+		// var $js_array = "<?php echo $certTemplate;?>";
+		// var $certAttach = "#certAttachment";
+  //       var $certFileType = $js_array.substring($js_array.indexOf(".")+1);
+  //       var $initialFileSize = "<?php echo $certTemplateFileSize;?>";
 		$("#certAttachment").fileinput({
 	        theme: 'fas',
 	        showClose: false,
@@ -234,9 +247,22 @@
 	        showUpload: false,
 	        showZoom: true,
 	        dropZoneEnabled: false,
+	        maxFileSize: 20000,
 	        initialPreviewShowDelete: false,
-	        allowedFileExtensions: ['docx', 'pdf', 'jpeg', 'jpg', 'png'],
+	        allowedFileExtensions: ['pdf'],
 	        required:true
+	     //    overwriteInitial: false,
+	     //    initialPreview: [// PDF DATA
+      //           'http://localhost/attend-certify/certificate-templates/' + $js_array
+      //       ],
+      //       initialPreviewAsData: true, // identify if you are sending preview data only and not the raw markup
+      //       initialPreviewConfig: [
+      //       	{
+      //       		type: $certFileType,
+      //       		size: $initialFileSize,
+      //       		caption: $js_array, 
+      //       		downloadUrl: 'http://localhost/attend-certify/certificate-templates/' + $js_array        		}
+    		// ]
 	    }).on('filepreupload', function(event, data, previewId, index) {
 	        alert('The description entered is:\n\n' + ($('#description').val() || ' NULL'));
 	    });

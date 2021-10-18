@@ -22,7 +22,7 @@
 		}
     </style>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')" class="d-flex flex-column">
+<body class="d-flex flex-column">
 	<?php 
         // Initialize Active Page for Navbar Highlight
         $activePage = "about";

@@ -9,7 +9,9 @@
                 <button id="navbar-button" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
                     <span id="navbar-button-icon" class="navbar-toggler-icon"></span>
                 </button>
+                <!-- Collapsible Navbar Content -->
                 <div class="collapse navbar-collapse" id="collapsibleNavbar">
+                    <!-- Logo Text -->
                     <div class="justify-content-center text-dark mt-2">
                         <img src="img/logo_text.svg" alt="ATTEND and CERTIFY" height="32.5" onContextMenu="return false;" ondragstart="return false;">
                         <!-- <h3 class="font-weight-bold">ATTEND and CERTIFY</h3> -->
@@ -30,9 +32,9 @@
                         <li class="nav-item dropdown h4 mx-1">
                             <a class="nav-link p-2 text-dark dropdown-toggle" href="" id="navbarAccount" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-user-circle"></i></a>
                             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarAccount">
-                                <h5 class="ml-2">Hi, <?php echo $username; ?>!</h5>
-                                <a class="dropdown-item" href="">Settings</a>
-                                <a class="dropdown-item" href="logout.php">Logout</a>
+                                <h5 class="ml-2">Hi, <span id="currentLoggedInUsername"><?php echo $username; ?></span>!</h5>
+                                <a class="dropdown-item <?php if($activePage == 'settings'){ echo 'active';}?>" href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                                <a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
                             </div>
                         </li>
                     </ul>

@@ -1,7 +1,7 @@
 <?php
 	use Phppot\Member;
 	if (! empty($_POST["signup-btn"])) {
-	    require_once './model/member.php';
+	    require_once './model/account-member.php';
 	    $member = new Member();
 	    $registrationResponse = $member->registerMember();
 	}
@@ -24,7 +24,7 @@
 		}
 	</style>
 </head>
-<body style="background-image: url('style/img/background_add.jpeg')">
+<body>
 	<div class="container-fluid h-100">
 		<div class="d-flex justify-content-center h-100">
 			<!-- Sign up Form -->

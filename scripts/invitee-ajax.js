@@ -12,7 +12,7 @@ $(document).ready(function(){
         "serverSide":true,
         "order":[],
         "ajax":{
-            url:"invitee-action.php?eventID="+eventID,
+            url:"invitee-action?eventID="+eventID,
             type:"POST",
             data:{inviteeAction:'listInvitee'},
             dataType:"json",
@@ -33,11 +33,22 @@ $(document).ready(function(){
         },
         "columnDefs":[
             {
-                "targets":[0, 1, 2, 3, 4, 5, 6, 7, 8],
+                "targets":[0, 6, 7, 8],
                 "orderable":false
             }
         ],
-        "searching": false,
+        'columns': [
+            { data: "view" },
+            { data: "ID" },
+            { data: "firstname" },
+            { data: "middlename" },
+            { data: "lastname" },
+            { data: "type" },
+            { data: "send" },
+            { data: "edit" },
+            { data: "delete" }
+         ],
+        // "searching": false,
         "pageLength": 10,
         "dom": 'Bfrtip',
         "buttons": [
@@ -87,9 +98,9 @@ $(document).ready(function(){
     $('#addInvitee').click(function(){
         $('#inviteeForm')[0].reset();
         $('.add-edit-invitee-title').html("<i class='fa fa-plus-circle'></i> Add Invitee");
-        $("#inviteeSave").removeClass("btn-warning");
-        $("#inviteeSave").addClass("btn-succes");
-        $('#inviteeSave').html("<i class='fa fa-plus'></i> Add");
+        // $("#inviteeSave").removeClass("btn-warning");
+        // $("#inviteeSave").addClass("btn-succes");
+        // $('#inviteeSave').html("<i class='fa fa-plus'></i> Add");
         $('#inviteeAction').val('addInvitee');
         $('#inviteeSave').val('Add');
     });
@@ -102,7 +113,7 @@ $(document).ready(function(){
         // console.log(formData);
         if (addEditInviteeValidation() == true) {
             $.ajax({
-                url:"invitee-action.php?eventID="+eventID,
+                url:"invitee-action?eventID="+eventID,
                 method:"POST",
                 data:formData,
                 beforeSend: function(){
@@ -117,24 +128,33 @@ $(document).ready(function(){
                         if (JSON.parse(data).Status == "nameAlreadyExists") {
                             $("#crud-successful").addClass("bg-warning");
                             $('#crud-successful').html("<h5>NAME OF INVITEE ALREADY EXISTS</h5>");
-                        }else if (JSON.parse(data).Status == "emailAlreadyExists") {
+                        } else if (JSON.parse(data).Status == "emailAlreadyExists") {
                             $("#crud-successful").addClass("bg-warning");
                             $('#crud-successful').html("<h5>EMAIL OF INVITEE ALREADY EXISTS</h5>");
-                        }else if (JSON.parse(data).Status == "phoneNumAlreadyExists") {
+                        } else if (JSON.parse(data).Status == "phoneNumAlreadyExists") {
                             $("#crud-successful").addClass("bg-warning");
                             $('#crud-successful').html("<h5>PHONE NUMBER OF INVITEE ALREADY EXISTS</h5>");
-                        }else if (JSON.parse(data).Status == "error") {
+                        } else if (JSON.parse(data).Status == "error") {
                             $("#crud-successful").addClass("bg-danger");
                             $('#crud-successful').html("<h5>ADD INVITEE FAILED</h5>");
-                        }else {
+                        } else {
                             $("#crud-successful").addClass("bg-succes");
                             $('#crud-successful').html("<h5>ADD INVITEE SUCCESSFULLY</h5>");
                         }
                     }else{
-                        if (JSON.parse(data).Status == "success") {
+                        if (JSON.parse(data).Status == "nameAlreadyExists") {
+                            $("#crud-successful").addClass("bg-warning");
+                            $('#crud-successful').html("<h5>NAME OF INVITEE ALREADY EXISTS</h5>");
+                        } else if (JSON.parse(data).Status == "emailAlreadyExists") {
+                            $("#crud-successful").addClass("bg-warning");
+                            $('#crud-successful').html("<h5>EMAIL OF INVITEE ALREADY EXISTS</h5>");
+                        } else if (JSON.parse(data).Status == "phoneNumAlreadyExists") {
+                            $("#crud-successful").addClass("bg-warning");
+                            $('#crud-successful').html("<h5>PHONE NUMBER OF INVITEE ALREADY EXISTS</h5>");
+                        } else if (JSON.parse(data).Status == "success") {
                             $("#crud-successful").addClass("bg-warning");
                             $('#crud-successful').html("<h5>EDIT INVITEE SUCCESSFULLY</h5>");
-                        }else{
+                        } else {
                             $("#crud-successful").addClass("bg-danger");
                             $('#crud-successful').html("<h5>EDIT INVITEE FAILED</h5>");
                         }
@@ -170,7 +190,7 @@ $(document).ready(function(){
         var inviteeID = $(this).attr("id");
         var inviteeAction = 'getInvitee';
         $.ajax({
-            url:"invitee-action.php?eventID="+eventID,
+            url:"invitee-action?eventID="+eventID,
             method:"POST",
             data:{inviteeID:inviteeID, inviteeAction:inviteeAction},
             dataType:"json",
@@ -206,7 +226,7 @@ $(document).ready(function(){
         var inviteeID = $(this).attr("id");
         var inviteeAction = 'sendEmailInvitee';
         $.ajax({
-            url:"invitee-action.php?eventID="+eventID,
+            url:"invitee-action?eventID="+eventID,
             method:"POST",
             data:{inviteeID:inviteeID, inviteeAction:inviteeAction},
             dataType:"json",
@@ -250,7 +270,7 @@ $(document).ready(function(){
         var inviteeID = $(this).attr("id");
         var inviteeAction = 'getInvitee';
         $.ajax({
-            url:"invitee-action.php?eventID="+eventID,
+            url:"invitee-action?eventID="+eventID,
             method:"POST",
             data:{inviteeID:inviteeID, inviteeAction:inviteeAction},
             dataType:"json",
@@ -260,9 +280,9 @@ $(document).ready(function(){
             success:function(data){
                 $("#loadingModal").modal('hide');
                 $('.add-edit-invitee-title').html("<i class='fa fa-edit'></i> Edit Invitee");
-                $("#inviteeSave").removeClass("btn-succes");
-                $("#inviteeSave").addClass("btn-warning");
-                $('#inviteeSave').html("<i class='fas fa-edit'></i> Edit");
+                // $("#inviteeSave").removeClass("btn-succes");
+                // $("#inviteeSave").addClass("btn-warning");
+                // $('#inviteeSave').html("<i class='fas fa-edit'></i> Edit");
                 $('#selectedInviteeID').val(data.ID);
                 $('#inviteeFirstName').val(data.firstname);
                 $('#inviteeMiddleName').val(data.middlename);
@@ -292,7 +312,7 @@ $(document).ready(function(){
         var inviteeID = $(this).attr("id");
         var inviteeAction = 'getInvitee';
         $.ajax({
-            url:"invitee-action.php?eventID="+eventID,
+            url:"invitee-action?eventID="+eventID,
             method:"POST",
             data:{inviteeID:inviteeID, inviteeAction:inviteeAction},
             dataType:"json",
@@ -324,7 +344,7 @@ $(document).ready(function(){
         // $('#inviteeSave').attr('disabled','disabled');
         var formData = $(this).serialize();
         $.ajax({
-            url:"invitee-action.php?eventID="+eventID,
+            url:"invitee-action?eventID="+eventID,
             method:"POST",
             data:formData,
             beforeSend: function(){

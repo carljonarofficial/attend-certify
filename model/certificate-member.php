@@ -92,28 +92,34 @@
 		*/
 		public function validateCertificate($selectedEventID, $scannedCertificateCode)
 		{
-			// Using database connection file here
-    		include 'dbConnection.php';
+			// Check if the Certificate Code Matches Pattern
+			if (preg_match("/^((\d){14})-CERT-(([A-Z0-9]){6})$/", $scannedCertificateCode)) {
+				// Using database connection file here
+	    		include 'dbConnection.php';
 
-    		// SQL Query to scan if the certificate code is valid
-    		$sqlScanQuery = "SELECT * FROM `certificate` WHERE `event_ID` = ? AND `certificate_code` = ?";
+	    		// SQL Query to scan if the certificate code is valid
+	    		$sqlScanQuery = "SELECT * FROM `certificate` WHERE `event_ID` = ? AND `certificate_code` = ?";
 
-    		// Fetch up the scan result
-    		$scanStmt = $conn->prepare($sqlScanQuery);
-	        $scanStmt->bind_param('is', $selectedEventID, $scannedCertificateCode);
-	        $scanStmt->execute();
-	        $scanResult =  $scanStmt->get_result();
-	        $scanStmt->close();
+	    		// Fetch up the scan result
+	    		$scanStmt = $conn->prepare($sqlScanQuery);
+		        $scanStmt->bind_param('is', $selectedEventID, $scannedCertificateCode);
+		        $scanStmt->execute();
+		        $scanResult =  $scanStmt->get_result();
+		        $scanStmt->close();
 
-    		// Check if the query is successful
-    		if ($scanResult->num_rows > 0) { // If the invitee code registered
-    			// It will out success message
-    			$output = array("scanStatus" => "success");
-    		} else { // If the invitee code not registered
+	    		// Check if the query is successful
+	    		if ($scanResult->num_rows > 0) { // If the invitee code registered
+	    			// It will out success message
+	    			$output = array("scanStatus" => "success");
+	    		} else { // If the invitee code not registered
+					// It will output invalid code message
+					$output = array("scanStatus" => "invalid");
+				}
+			} else {
 				// It will output invalid code message
 				$output = array("scanStatus" => "invalid");
 			}
-
+			
 			echo json_encode($output);
 		}
 

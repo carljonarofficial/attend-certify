@@ -67,16 +67,6 @@
         $addResponse = $member->deleteEvent();
     }
 
-    // If the admin click scan event attendance, then it will proceed here
-    if (!empty($_POST['scanAttendance'])) {
-        session_start();
-        unset($_SESSION["attendance-present-id"]);
-        session_start();
-        $_SESSION["attendance-present-id"] = $_POST['scanAttendance'];
-        session_write_close();
-        header("Location: scan-attendance.php");
-    }
-
 ?>
 <!DOCTYPE html>
 <html>

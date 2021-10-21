@@ -189,72 +189,78 @@
 		*/
 		public function scanAttendance($currentEventID)
 		{
-			// Using database connection file here
-    		include 'dbConnection.php';
-
     		// Fetch Invitee Code
     		$inviteeCode = $_POST["inviteeCode"];
 
-    		// Generate Certificate Code
-    		$certficateCode  = date("YmdHis")."-CERT-".strtoupper(substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyz'), 0, 6));
+    		// Check if the Invitee Code Matches Pattern
+    		if (preg_match("/^IVT-((\d){14})-(([A-Z0-9]){6})$/", $inviteeCode)) {
+    			// Using database connection file here
+    			include 'dbConnection.php';
 
-    		// SQL Query to scan if the code is registered for the event
-    		$sqlScanQuery = "SELECT * FROM `invitees` WHERE `event_ID` = ? AND `invitee_code` = ?";
+    			// Generate Certificate Code
+	    		$certficateCode  = date("YmdHis")."-CERT-".strtoupper(substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyz'), 0, 6));
 
-    		// Fetch up the scan result
-    		$scanStmt = $conn->prepare($sqlScanQuery);
-	        $scanStmt->bind_param('is', $currentEventID, $inviteeCode);
-	        $scanStmt->execute();
-	        $scanResult =  $scanStmt->get_result();
-	        $scanStmt->close();
+	    		// SQL Query to scan if the code is registered for the event
+	    		$sqlScanQuery = "SELECT * FROM `invitees` WHERE `event_ID` = ? AND `invitee_code` = ?";
 
-    		if ($scanResult->num_rows > 0) { // If the invitee code registered
-				// SQL Query to check if the code already recorded attendance
-				$sqlCheckQuery = "SELECT * FROM `attendance` WHERE `event_ID` = ? AND `invitee_code` = ?";
+	    		// Fetch up the scan result
+	    		$scanStmt = $conn->prepare($sqlScanQuery);
+		        $scanStmt->bind_param('is', $currentEventID, $inviteeCode);
+		        $scanStmt->execute();
+		        $scanResult =  $scanStmt->get_result();
+		        $scanStmt->close();
 
-				// Fetch up the check result
-    			$checkStmt = $conn->prepare($sqlCheckQuery);
-		        $checkStmt->bind_param('is', $currentEventID, $inviteeCode);
-		        $checkStmt->execute();
-		        $checkResult =  $checkStmt->get_result();
-		        $checkStmt->close();
+	    		if ($scanResult->num_rows > 0) { // If the invitee code registered
+					// SQL Query to check if the code already recorded attendance
+					$sqlCheckQuery = "SELECT * FROM `attendance` WHERE `event_ID` = ? AND `invitee_code` = ?";
 
-    			if ($checkResult->num_rows > 0) {
-    				// It will output already code message
-					$output = array("scanStatus" => "already");
-    			} else {
-    				// Insert Attendance Record Query
-					$recordStmt = $conn->prepare("INSERT INTO `attendance`(`event_ID`, `invitee_code`) VALUES (?,?)");
-					$recordStmt->bind_param("is", $currentEventID, $inviteeCode);
+					// Fetch up the check result
+	    			$checkStmt = $conn->prepare($sqlCheckQuery);
+			        $checkStmt->bind_param('is', $currentEventID, $inviteeCode);
+			        $checkStmt->execute();
+			        $checkResult =  $checkStmt->get_result();
+			        $checkStmt->close();
 
-					// Validate if Insert Query is successful or not
-					if ($recordStmt->execute()) {
-						$recordStmt->close();
-						// Insert Certificate Record Query
-						$certStmt = $conn->prepare("INSERT INTO `certificate`(`event_ID`, `invitee_code`, `certificate_code`) VALUES (?,?,?)");
-						$certStmt->bind_param("iss", $currentEventID, $inviteeCode, $certficateCode);
+	    			if ($checkResult->num_rows > 0) {
+	    				// It will output already code message
+						$output = array("scanStatus" => "already");
+	    			} else {
+	    				// Insert Attendance Record Query
+						$recordStmt = $conn->prepare("INSERT INTO `attendance`(`event_ID`, `invitee_code`) VALUES (?,?)");
+						$recordStmt->bind_param("is", $currentEventID, $inviteeCode);
 
 						// Validate if Insert Query is successful or not
-						if ($certStmt->execute()) {
-							$certStmt->close();
-							// It will out success message
-    						$output = array("scanStatus" => "success");
+						if ($recordStmt->execute()) {
+							$recordStmt->close();
+							// Insert Certificate Record Query
+							$certStmt = $conn->prepare("INSERT INTO `certificate`(`event_ID`, `invitee_code`, `certificate_code`) VALUES (?,?,?)");
+							$certStmt->bind_param("iss", $currentEventID, $inviteeCode, $certficateCode);
+
+							// Validate if Insert Query is successful or not
+							if ($certStmt->execute()) {
+								$certStmt->close();
+								// It will out success message
+	    						$output = array("scanStatus" => "success");
+							} else {
+								// It will out error message
+	    						$output = array("scanStatus" => "error");	
+							}
+							
 						} else {
 							// It will out error message
-    						$output = array("scanStatus" => "error");	
+	    					$output = array("scanStatus" => "error");
 						}
-						
-					} else {
-						// It will out error message
-    					$output = array("scanStatus" => "error");
-					}
 
-    			}
-    			
-			} else { // If the invitee code not registered
-				// It will output invalid code message
+	    			}
+	    			
+				} else { // If the invitee code not registered
+					// It will output invalid code message
+					$output = array("scanStatus" => "invalid");
+				}
+    		} else {
+    			// It will output invalid code message
 				$output = array("scanStatus" => "invalid");
-			}
+    		}
 			echo json_encode($output);
 		}
 

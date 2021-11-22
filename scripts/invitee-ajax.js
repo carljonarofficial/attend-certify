@@ -17,24 +17,29 @@ $(document).ready(function(){
             data:{inviteeAction:'listInvitee'},
             dataType:"json",
             complete: function(data) {
+                $('#sendSelectedInvitations, #deleteSelectedInvitations').hide();
+                $("#selectAllInvitees").prop('checked',false);
                 $('#inviteeList_paginate').addClass('mb-2');
                 $("#inviteeList").css("width", "1078px");
-                $("#inviteeView").css("width", "10%");
+                $("#inviteeView").css("width", "8%");
                 $("#inviteeID").css("width", "9%");
                 $("#inviteeFName").css("width", "15%");
-                $("#inviteeMName").css("width", "14%");
+                $("#inviteeMName").css("width", "15%");
                 $("#inviteeLName").css("width", "13%");
                 $("#inviteeType").css("width", "5%");
-                $("#inviteeSend").css("width", "10%");
-                $("#inviteeEdit").css("width", "10%");
-                $("#inviteeDelete").css("width", "11%");
+                $("#inviteeMore").css("width", "5%");
+                $("#inviteeCheckBox").css("width", "1%");
                 document.getElementById("totalInvitees").innerText = data.responseJSON.recordsTotal;
             }
         },
         "columnDefs":[
             {
-                "targets":[0, 6, 7, 8],
+                "targets":[0, 6, 7],
                 "orderable":false
+            },
+            {
+                "className": "text-center",
+                "targets": [7]
             }
         ],
         'columns': [
@@ -44,9 +49,8 @@ $(document).ready(function(){
             { data: "middlename" },
             { data: "lastname" },
             { data: "type" },
-            { data: "send" },
-            { data: "edit" },
-            { data: "delete" }
+            { data: "delete" },
+            { data: "checkbox" }
          ],
         // "searching": false,
         "pageLength": 10,
@@ -90,9 +94,42 @@ $(document).ready(function(){
         ]
     });
 
-    $('#loadingTestBtn').click(function() {
-        $("#loadingModal").modal('show');
+    // Select All Invitees using checkbox
+    $("#selectAllInvitees").click(function() {
+        $(this).closest('table').find('td input:checkbox').prop('checked', this.checked);
+        if ($(this).is(":checked")){
+            inviteeData.rows().select();
+        } else {
+            inviteeData.rows().deselect();
+        }
+        selectedCheckboxes();
     });
+
+    // Selected Checkbox Row
+    $("#inviteeList").on('click', '.selectInvitee', function(){
+        $("#selectAllInvitees").prop('checked',false);
+        var selectedIndex = $(this).closest("tr").index();
+        if ($(this).is(":checked")){
+            inviteeData.row(selectedIndex).select();
+        } else {
+            inviteeData.row(selectedIndex).deselect();
+        }
+        selectedCheckboxes();
+    });
+
+    // Show or Hide Send and Delete Buttons provided that selected at least one row
+    function selectedCheckboxes() {
+        var rowCount = 0;
+        $('#inviteeList .selectInvitee:checked').each(function() {
+            rowCount++;
+        });
+        if (rowCount > 0) {
+            $('#sendSelectedInvitations, #deleteSelectedInvitations').show();
+        } else {
+            $('#sendSelectedInvitations, #deleteSelectedInvitations').hide();
+        }
+        
+    }
 
     // Add Invitee Function
     $('#addInvitee').click(function(){
@@ -103,6 +140,149 @@ $(document).ready(function(){
         // $('#inviteeSave').html("<i class='fa fa-plus'></i> Add");
         $('#inviteeAction').val('addInvitee');
         $('#inviteeSave').val('Add');
+    });
+
+    // Send Selected Invitation
+    $("#sendSelectedInvitations").click(function() {
+        var selectedRows = new Array();
+        $('#inviteeList .selectInvitee:checked').each(function() {
+            selectedRows.push($(this).attr('value'));
+        });
+        if (selectedRows.length > 0) {
+            $.ajax({
+                url:"invitee-action?eventID="+eventID,
+                method:"POST",
+                data:{selectedInviteeIDs: JSON.stringify(selectedRows), inviteeAction:'sendSelectedInvitation'},
+                dataType:"json",
+                beforeSend: function(){
+                    $("#loadingModal").modal('show');
+                }
+            })
+            .done(function(data) {
+                $("#loadingModal").modal('hide');
+                $("#selectAllInvitees").closest('table').find('td input:checkbox').prop('checked', false);
+                inviteeData.rows().deselect();
+                $('#sendSelectedInvitations, #deleteSelectedInvitations').hide();
+                if (data.Status == "success") {
+                    $("#crud-successful").removeClass("bg-succes");
+                    $("#crud-successful").removeClass("bg-warning");
+                    $("#crud-successful").removeClass("bg-danger");
+                    $("#crud-successful").addClass("bg-succes");
+                    $('#crud-successful').html("<h5>SEND EMAIL INVITATIONS SUCCESSFULLY</h5>");
+                    $('#crud-successful').show().delay(1000).fadeOut();
+                }else{
+                    $("#crud-successful").removeClass("bg-succes");
+                    $("#crud-successful").removeClass("bg-warning");
+                    $("#crud-successful").removeClass("bg-danger");
+                    $("#crud-successful").addClass("bg-danger");
+                    $('#crud-successful').html("<h5>SEND EMAIL INVITATIONS FAILED</h5>");
+                    $('#crud-successful').show().delay(1000).fadeOut();
+                }
+                console.log("Success: " + data.Status);
+            })
+            .fail(function() {
+                $("#loadingModal").modal('hide');
+                $("#crud-successful").removeClass("bg-succes");
+                $("#crud-successful").removeClass("bg-warning");
+                $("#crud-successful").removeClass("bg-danger");
+                $("#crud-successful").addClass("bg-danger");
+                $('#crud-successful').html("<h5>SEND EMAILS INVITATION ERROR</h5>");
+                $('#crud-successful').show().delay(1000).fadeOut();
+                console.log("Error");
+            });
+        }
+    });
+
+    // Delete Selected Invitees
+    $("#deleteSelectedInvitations").click(function() {
+        var selectedRows = new Array();
+        $('#inviteeList .selectInvitee:checked').each(function() {
+            selectedRows.push($(this).attr('value'));
+        });
+        if (selectedRows.length > 0) {
+            $.ajax({
+                url:"invitee-action?eventID="+eventID,
+                method:"POST",
+                data:{selectedInviteeIDs: JSON.stringify(selectedRows), inviteeAction:'getSelectedInvitees'},
+                dataType:"json",
+                beforeSend: function(){
+                    $("#loadingModal").modal('show');
+                }
+            })
+            .done(function(data) {
+                $("#loadingModal").modal('hide');
+                if (data.Status == "success") {
+                    var strSelected = "";
+                    for (var i = 0; i < data.selectedData.length; i++) {
+                        strSelected += "<li>" + data.selectedData[i] + "</li>";
+                    }
+                    $("#selected-invitees-deletion").html(strSelected);
+                    $('#deleteSelectedInviteeModal').modal('show');
+                } else {
+                    $("#crud-successful").removeClass("bg-succes");
+                    $("#crud-successful").removeClass("bg-warning");
+                    $("#crud-successful").removeClass("bg-danger");
+                    $("#crud-successful").addClass("bg-danger");
+                    $('#crud-successful').html("<h5>DELETE INVITEE ERROR</h5>");
+                    $('#crud-successful').show().delay(1000).fadeOut();    
+                }
+            })
+            .fail(function() {
+                $("#loadingModal").modal('hide');
+                $("#crud-successful").removeClass("bg-succes");
+                $("#crud-successful").removeClass("bg-warning");
+                $("#crud-successful").removeClass("bg-danger");
+                $("#crud-successful").addClass("bg-danger");
+                $('#crud-successful').html("<h5>DELETE INVITEE ERROR</h5>");
+                $('#crud-successful').show().delay(1000).fadeOut();
+            });
+        }
+        
+    });
+
+    // Submit Delete Selected Invitee Form
+    $("#deleteSelectedInviteeModal").on('submit', '#inviteeSelectedDeleteForm', function(event) {
+        event.preventDefault();
+        var selectedRows = new Array();
+        $('#inviteeList .selectInvitee:checked').each(function() {
+            selectedRows.push($(this).attr('value'));
+        });
+        if (selectedRows.length > 0) {
+            $.ajax({
+                url:"invitee-action?eventID="+eventID,
+                method:"POST",
+                data:{selectedInviteeIDs: JSON.stringify(selectedRows), inviteeAction:'deleteSelectedInvitees'},
+                dataType:"json",
+                beforeSend: function(){
+                    $("#loadingModal").modal('show');
+                }
+            })
+            .done(function(data) {
+                $("#loadingModal").modal('hide');
+                $("#selectAllInvitees").closest('table').find('td input:checkbox').prop('checked', false);
+                $("#crud-successful").removeClass("bg-succes");
+                $("#crud-successful").removeClass("bg-warning");
+                $("#crud-successful").removeClass("bg-danger");
+                $("#crud-successful").addClass("bg-danger");
+                if (data.Status == "success") {
+                    $('#crud-successful').html("<h5>DELETE SELECTED INVITEE/S SUCCESSFULLY</h5>");
+                }else{
+                    $('#crud-successful').html("<h5>DELETE SELECTED INVITEE/S FAILED</h5>");
+                }
+                $('#deleteSelectedInviteeModal').modal('hide');
+                $('#crud-successful').show().delay(1000).fadeOut();
+                inviteeData.ajax.reload();
+            })
+            .fail(function() {
+                $("#loadingModal").modal('hide');
+                $("#crud-successful").removeClass("bg-succes");
+                $("#crud-successful").removeClass("bg-warning");
+                $("#crud-successful").removeClass("bg-danger");
+                $("#crud-successful").addClass("bg-danger");
+                $('#crud-successful').html("<h5>DELETE SELECTED INVITEE/S ERROR</h5>");
+                $('#crud-successful').show().delay(1000).fadeOut();
+            });
+        }
     });
 
     // Submit Add or Edit Invitee Form

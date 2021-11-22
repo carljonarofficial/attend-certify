@@ -241,8 +241,8 @@
 
 	          <div class="u-row-container" style="padding: 0px;background-color: transparent">
 	            <div class="u-row" style="Margin: 0 auto;min-width: 320px;max-width: 600px;overflow-wrap: break-word;word-wrap: break-word;word-break: break-word;background-color: transparent;">
-	              <div style="border-collapse: collapse;display: table;width: 100%;background-image: url('https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1627752135575-background_add.jpeg');background-repeat: no-repeat;background-position: center top;background-color: transparent;">
-	                <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding: 0px;background-color: transparent;" align="center"><table cellpadding="0" cellspacing="0" border="0" style="width:600px;"><tr style="background-image: url('https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1627752135575-background_add.jpeg');background-repeat: no-repeat;background-position: center top;background-color: transparent;"><![endif]-->
+	              <div style="border-collapse: collapse;display: table;width: 100%;background-image: url('https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1637081499646-Event+Invitation+Poster+Template.png');background-repeat: no-repeat;background-position: center top;background-color: transparent;">
+	                <!--[if (mso)|(IE)]><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding: 0px;background-color: transparent;" align="center"><table cellpadding="0" cellspacing="0" border="0" style="width:600px;"><tr style="background-image: url('https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1637081499646-Event+Invitation+Poster+Template.png');background-repeat: no-repeat;background-position: center top;background-color: transparent;"><![endif]-->
 
 	                <!--[if (mso)|(IE)]><td align="center" width="600" style="width: 600px;padding: 0px;border-top: 0px solid transparent;border-left: 0px solid transparent;border-right: 0px solid transparent;border-bottom: 0px solid transparent;" valign="top"><![endif]-->
 	                <div class="u-col u-col-100" style="max-width: 320px;min-width: 600px;display: table-cell;vertical-align: top;">
@@ -254,7 +254,7 @@
 	                      <table style="font-family:'Open Sans',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
 	                        <tbody>
 	                          <tr>
-	                            <td style="overflow-wrap:break-word;word-break:break-word;padding:25px;font-family:'Open Sans',sans-serif;" align="left">
+	                            <td style="overflow-wrap:break-word;word-break:break-word;padding:20px;font-family:'Open Sans',sans-serif;" align="left">
 
 	                              <table height="0px" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;border-top: 0px solid #BBBBBB;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%">
 	                                <tbody>
@@ -277,10 +277,17 @@
 	                            <td style="overflow-wrap:break-word;word-break:break-word;padding:50px 10px;font-family:'Open Sans',sans-serif;" align="left">
 
 	                              <div style="line-height: 140%; text-align: left; word-wrap: break-word;">
-	                                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="color: #000000; font-size: 14px; line-height: 19.6px; background-color: #3598db;"><strong><span style="font-size: 34px; line-height: 47.6px; font-family: Raleway, sans-serif; background-color: #3598db;">You are invited to attend this event:</span></strong>
+	                                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="color: #34495e; font-size: 14px; line-height: 19.6px; font-family: 'arial black', 'avant garde', arial;"><strong><span style="font-size: 28px; line-height: 39.2px;"><span style="line-height: 39.2px; font-size: 28px;">You are invited to</span></span>
+	                                  </strong>
 	                                  </span>
 	                                </p>
-	                                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="color: #000000; font-size: 14px; line-height: 19.6px; background-color: #3598db;"><strong><span style="font-size: 34px; line-height: 47.6px; font-family: Raleway, sans-serif; background-color: #3598db;">{$eventTitle}</span></strong>
+	                                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="color: #34495e; font-size: 14px; line-height: 19.6px; font-family: 'arial black', 'avant garde', arial;"><strong><span style="font-size: 28px; line-height: 39.2px;"><span style="line-height: 39.2px; font-size: 28px;">attend this event:</span></span>
+	                                  </strong>
+	                                  </span>
+	                                </p>
+	                                <p style="font-size: 14px; line-height: 140%; text-align: center;"><span style="color: #34495e; font-size: 14px; line-height: 19.6px; font-family: 'arial black', 'avant garde', arial;"><strong><span style="font-size: 28px; line-height: 39.2px;"><span style="line-height: 39.2px; font-size: 28px;">{$eventTitle}</span>
+	                                  </span>
+	                                  </strong>
 	                                  </span>
 	                                </p>
 	                              </div>
@@ -293,7 +300,7 @@
 	                      <table style="font-family:'Open Sans',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
 	                        <tbody>
 	                          <tr>
-	                            <td style="overflow-wrap:break-word;word-break:break-word;padding:25px;font-family:'Open Sans',sans-serif;" align="left">
+	                            <td style="overflow-wrap:break-word;word-break:break-word;padding:20px;font-family:'Open Sans',sans-serif;" align="left">
 
 	                              <table height="0px" align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;table-layout: fixed;border-spacing: 0;mso-table-lspace: 0pt;mso-table-rspace: 0pt;vertical-align: top;border-top: 0px solid #BBBBBB;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%">
 	                                <tbody>

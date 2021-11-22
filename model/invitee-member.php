@@ -9,6 +9,7 @@
 	require 'model/Exception.php';
 	require 'model/PHPMailer.php';
 	require 'model/SMTP.php';
+	require 'model/SMS/autoload.php';
 
 	/**
 	 *
@@ -149,9 +150,15 @@
 	        		"middlename"=> ucfirst($row["middlename"]),
 	        		"lastname"=> ucfirst($row["lastname"]),
 	        		"type"=> $row["type"],
-	        		"send"=> '<button type="button" name="sendEmailInvitee" id="'.$row["ID"].'" class="btn btn-success btn-xs sendEmailInvitee w-100"><i class="fas fa-envelope"></i> Send</button>',
-	        		"edit"=> '<button type="button" name="editInvitee" id="'.$row["ID"].'" class="btn btn-warning btn-xs editInvitee w-100"><i class="fas fa-user-edit"></i> Edit</button>',
-	        		"delete"=> '<button type="button" name="deleteInvitee" id="'.$row["ID"].'" class="btn btn-danger btn-xs deleteInvitee w-100"><i class="fas fa-trash-alt"></i> Delete</button>',
+	        		"delete"=> '<div class="dropdown">
+	        						<button type="button" class="btn btn-secondary btn-xs w-100" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i> More</button>
+	        						<div class="dropdown-menu dropdown-menu-right p-2">
+	        							<button type="button" name="sendEmailInvitee" id="'.$row["ID"].'" class="btn btn-info btn-xs sendEmailInvitee w-100 my-1"><i class="fas fa-envelope"></i> Send</button>
+	        							<button type="button" name="editInvitee" id="'.$row["ID"].'" class="btn btn-warning btn-xs editInvitee w-100 my-1"><i class="fas fa-user-edit"></i> Edit</button>
+	        							<button type="button" name="deleteInvitee" id="'.$row["ID"].'" class="btn btn-danger btn-xs deleteInvitee w-100 my-1"><i class="fas fa-trash-alt"></i> Delete</button>
+	        						</div>
+	        					</div>',
+	        		"checkbox"=> '<input type="checkbox" class="selectInvitee" value="'.$row["ID"].'">'
 	        	);
 	        	$inviteeData[] = $ivtRows;
 	        	$numFiltered++;
@@ -425,6 +432,353 @@
 			    $response = array('Status' => "error");
 				echo json_encode($response);
 			}
+		}
+
+		/**
+		 * To send selected email invitation
+		*/
+		public function sendSelectedInvitation($currentEventID)
+		{
+			// Fetch Selected Invitee IDs and Count them
+			$selectedInviteeIDS = $_POST["selectedInviteeIDs"];
+			$selectedInviteeIDS = json_decode($selectedInviteeIDS);
+			$idsCount = count($selectedInviteeIDS);
+
+			// Validate if the admin logged in
+    		include 'validateLogin.php';
+
+			// Database Connection
+			include 'dbConnection.php';
+
+			// Fetch up an event information
+			$eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ?");
+	        $eventStmt->bind_param('ii', $id, $currentEventID);
+	        $eventStmt->execute();
+	        $eventInfo =  $eventStmt->get_result();
+	        $eventStmt->close();
+	        while ($row = $eventInfo->fetch_assoc()) {
+	            $eventTitle = $row["event_title"];
+	            $eventDate = date_format(date_create($row["date"]),"F d, Y");
+	            $eventTimeInclusive = date_format(date_create($row["time_inclusive"]),"h:iA");
+	            $eventTimeConclusive = date_format(date_create($row["time_conclusive"]),"h:iA");
+	            $eventVenue = $row["venue"];
+	            $eventDesciption = $row["description"];
+	            $eventAgenda = $row["agenda"];
+	            $eventTheme = $row["theme"];
+	            $certTemplate = $row["certificate_template"];
+	        }
+
+	        // passing true in constructor enables exceptions in PHPMailer
+			$mail = new PHPMailer(true);
+
+			// Server settings
+		    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
+		    $mail->isSMTP();
+		    $mail->Host = 'smtp.gmail.com';
+		    $mail->SMTPAuth = true;
+		    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+		    $mail->Port = 587;
+
+		    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
+		    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+
+			// Set Default Time Zone and Date Today
+			date_default_timezone_set("Asia/Manila");
+			$dateToday = date("F d, Y");
+
+			// Create Placeholder for Prepared Statements and Bind String
+			$idsPlaceholders = implode(',', array_fill(0, $idsCount, '?'));
+			$bindStr = str_repeat('i', $idsCount);
+
+			// Fetch up selected Invitees info from database
+			$selectedStmt = $conn -> prepare("SELECT *  FROM `invitees` WHERE `event_ID` = ? AND `ID` in ($idsPlaceholders)");
+			$selectedStmt->bind_param("i".$bindStr, $currentEventID, ...$selectedInviteeIDS);
+			$selectedStmt->execute();
+			$selectedResults =  $selectedStmt->get_result();
+			$selectedStmt->close();
+
+			// Include Barcode Generator
+			include "model/bulk-barcode-generator.php";
+
+			// Initalize response
+			$response = "error";
+
+			// Initial SMS Config
+			$basic  = new \Vonage\Client\Credentials\Basic("fe8f23c8", "aMcOvNgvV5DO2kiU");
+			$client = new \Vonage\Client($basic);
+
+			// Send Selected Invitees' Invitation
+			while ($row = $selectedResults->fetch_assoc()) {
+				$inviteeCode =  $row["invitee_code"];
+				$inviteeName =  $row["firstname"] . " ". $row["middlename"] . " ". $row["lastname"];
+				$inviteeEmail =  $row["email"];
+				$inviteePhoneNum = $row["phonenum"];
+
+				try {
+
+					$pdf417->encode($inviteeCode);
+
+				    $base64Encoded = $pdf417->forWeb("BASE64", $inviteeCode);
+					
+					// Get Barcode Base64
+				    $inviteeBarcodeData = $this->createCustomInvitationFile($base64Encoded, $inviteeCode, $inviteeName, $eventTitle, "$eventDate - $eventTimeInclusive-$eventTimeConclusive", $eventVenue);
+
+				    // Sender and recipient settings
+				    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+				    $mail->addAddress($inviteeEmail, $inviteeName);
+				    // $mail->addReplyTo('example@gmail.com', 'Sender Name'); // to set the reply to
+
+				    // Setting the email content
+				    $mail->IsHTML(true);
+				    $mail->Subject = $eventTitle." - Event Invitation | Attend and Certify";
+				    $mail->clearAttachments();
+				    $mail->addStringEmbeddedImage(base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Encoded)), 'barcodeEmbedded', $inviteeName." - ".$inviteeCode.'.png', "base64", "image/png");
+				    $mail->Body = include 'model/html-email-template-for-invitation.php';
+
+				    // Add Static Attachment
+					$mail->AddStringAttachment(base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $inviteeBarcodeData)), $inviteeName." - ".$inviteeCode.'.png', "base64", "image/png");
+
+				    $mail->send();
+
+				    $mail->clearAddresses();
+
+				    $response = "success";
+
+				    // Send SMS Message
+				    // $response = $this->sendSMS($client, $inviteePhoneNum, $inviteeEmail);
+					
+				} catch (Exception $e) {
+				    $response = "error";
+				}
+			}
+			echo json_encode(array('Status' => $response));
+
+		}
+
+		/**
+		 * To get selected invitees
+		*/
+		public function getSelectedInvitees($currentEventID)
+		{
+			// Fetch Selected Invitee IDs and Count them
+			$selectedInviteeIDS = $_POST["selectedInviteeIDs"];
+			$selectedInviteeIDS = json_decode($selectedInviteeIDS);
+			$idsCount = count($selectedInviteeIDS);
+
+			// Database Connection
+			include 'dbConnection.php';
+
+    		// Create Placeholder for Prepared Statements and Bind String
+			$idsPlaceholders = implode(',', array_fill(0, $idsCount, '?'));
+			$bindStr = str_repeat('i', $idsCount);
+
+			// Fetch up selected Invitees info from database
+			$selectedStmt = $conn -> prepare("SELECT *  FROM `invitees` WHERE `event_ID` = ? AND `ID` in ($idsPlaceholders)");
+			$selectedStmt->bind_param("i".$bindStr, $currentEventID,...$selectedInviteeIDS);
+			$selectedStmt->execute();
+			$selectedResults =  $selectedStmt->get_result();
+			$selectedStmt->close();
+
+			// Initialize Invitee Array
+			$selectedArray = array();
+
+			$getSelectedResult = "error";
+
+			// Get Selected Invitees
+			while ($row = $selectedResults->fetch_assoc()) {
+				$selectedArray[] = $row["firstname"] . " ". $row["middlename"] . " ". $row["lastname"];
+				$getSelectedResult = "success";
+			}
+
+			echo json_encode(array(
+				"Status" => $getSelectedResult,
+				"selectedData" => $selectedArray
+			));
+		}
+
+		/**
+		 * To delete selected invitees
+		*/
+		public function deleteSelectedInvitees($currentEventID)
+		{
+			// Fetch Selected Invitee IDs and Count them
+			$selectedInviteeIDS = $_POST["selectedInviteeIDs"];
+			$selectedInviteeIDS = json_decode($selectedInviteeIDS);
+			$idsCount = count($selectedInviteeIDS);
+
+			// Database Connection
+			include 'dbConnection.php';
+
+    		// Create Placeholder for Prepared Statements and Bind String
+			$idsPlaceholders = implode(',', array_fill(0, $idsCount, '?'));
+			$bindStr = str_repeat('i', $idsCount);
+
+			// Delete invitees using Update Statement
+			$deleteStmt = $conn->prepare("UPDATE `invitees` SET `status` = 0 WHERE `event_ID` = ? AND `ID` in($idsPlaceholders)");
+			$deleteStmt->bind_param("i".$bindStr, $currentEventID,...$selectedInviteeIDS);
+
+			// Validate if Delete Query is successful or not
+			if ($deleteStmt->execute()) {
+				$deleteStmt->close();
+				$response = array('Status' => "success");
+				echo json_encode($response);
+			}else{
+				$response = array('Status' => "error");
+				echo json_encode($response);
+			}
+
+		}
+
+		/**
+		 * To send SMS message
+		*/
+		public function sendSMS($clientConfig, $senderNum, $senderEmail)
+		{
+			$smsResponse = $clientConfig->sms()->send(
+					    new \Vonage\SMS\Message\SMS("63".substr($senderNum,1), "AttnCert", 'Your are invited with the event that sent to you thru your email: '.$senderEmail)
+			);
+
+			$message = $smsResponse->current();
+
+			if ($message->getStatus() == 0) {
+			    $response = "success";
+			} else {
+			    $response = "error";
+			}
+			return $response;
+		}
+
+		/**
+		 * To Create Custom Invitation Barcode Image File
+		*/
+		public function createCustomInvitationFile($barcodeData, $ivtCode, $ivtName, $ivtEvent, $ivtDateTime, $ivtVenue)
+		{
+			// Get Font File
+			$fontFile = "fonts/Roboto-Medium.ttf";
+
+			// Decode Barcode Data and Get Dimensions
+			$imgBarcode = imagecreatefromstring(base64_decode($barcodeData));
+			$imgDimen = getimagesizefromstring(base64_decode($barcodeData));
+
+			// Image Dimensions
+			$imgWidth = 784;
+			$imgHeight = $imgDimen[1] + 230;
+
+			// Starting Point Vertically to add Text
+			$yAxis = $imgHeight - 160;
+
+			// Invitee Information Font Size
+			$inviteeInfoFontSize = 20;
+
+			// System Title Config
+			$systemTitleText = "ATTEND and CERTIFY";
+			$systemTitleFontSize = 25;
+			$systemTitleTextBox = imagettfbbox($systemTitleFontSize, 0, $fontFile, $systemTitleText);
+			$systemTitleTextWidth = $systemTitleTextBox[2] - $systemTitleTextBox[0];
+			$systemTitleYCoordinates = ($imgWidth/2) - ($systemTitleTextWidth/2);
+
+			// Invitee Code Config
+			$inviteeCodeText = "CODE: $ivtCode";
+
+			// Invitee Name Config
+			$inviteeName = "INVITEE: $ivtName";
+			$inviteeNameParagraph = explode('|', wordwrap($inviteeName, 50, '|'));
+			foreach ($inviteeNameParagraph as $textLine) {
+				$imgHeight += 30;
+			}
+
+			// Event Config
+			$eventTitle = "EVENT: $ivtEvent";
+			$eventTitleParagraph = explode('|', wordwrap($eventTitle, 50, '|'));
+			foreach ($eventTitleParagraph as $textLine) {
+				$imgHeight += 30;
+			}
+
+			// Date and Time Config
+			$dateTimeText = "DATE and TIME: $ivtDateTime";
+
+			// Venue Config
+			$venueText = "VENUE: $ivtVenue";
+			$venueParagraph = explode('|', wordwrap($venueText, 50, '|'));
+			foreach ($venueParagraph as $textLine) {
+				$imgHeight += 30;
+			}
+
+			// Important Notice Text
+			$importantNoticeText = "* Please present this on scheduled event at designated venue above.";
+			$importantNoticeFontSize = 12;
+			$importantNoticeTextBox = imagettfbbox($importantNoticeFontSize, 0, $fontFile, $importantNoticeText);
+			$importantNoticeTextWidth = $importantNoticeTextBox[2] - $importantNoticeTextBox[0];
+			$importantNoticeYCoordinates = ($imgWidth/2) - ($importantNoticeTextWidth/2);
+
+			// All Rights Reserved Text
+			$allRightsReservedText = "Copyright 2021. All Rights Reserved. This system created by PALADO Group.";
+			$allRightsReservedFontSize = 15;
+			$allRightsReservedTextBox = imagettfbbox($allRightsReservedFontSize, 0, $fontFile, $allRightsReservedText);
+			$allRightsReservedTextWidth = $allRightsReservedTextBox[2] - $allRightsReservedTextBox[0];
+			$allRightsReservedeYCoordinates = ($imgWidth/2) - ($allRightsReservedTextWidth/2);
+
+			// Create the size of image or blank image
+			$imageFrame = imagecreate($imgWidth, $imgHeight);
+
+			// Set the background color of image
+			$backgroundColor = imagecolorallocate($imageFrame, 255, 255, 255);
+
+			// Set the text color of image
+			$textColor = imagecolorallocate($imageFrame, 0, 0, 0);
+
+			// Add System Name
+			imagefilledrectangle($imageFrame, 0, 0, $imgWidth, 70, imagecolorallocate($imageFrame, 0, 123, 255));
+			imagettftext($imageFrame, $systemTitleFontSize, 0, $systemTitleYCoordinates, 48, imagecolorallocate($imageFrame, 255, 255, 255), $fontFile, $systemTitleText);
+
+			// Add Invitee Barcode
+			imagecopymerge($imageFrame, $imgBarcode, 0, 70, 0, 0, $imgWidth, 300, 100);
+
+			// Add Invitee Code Text to Image
+			imagettftext($imageFrame, $inviteeInfoFontSize, 0, 50, $yAxis, $textColor, $fontFile, $inviteeCodeText);
+			$yAxis += 35;
+
+			// Add Invitee Name Text to Image
+			foreach ($inviteeNameParagraph as $textLine) {
+				imagettftext($imageFrame, $inviteeInfoFontSize, 0, 50, $yAxis, $textColor, $fontFile, $textLine);
+				$yAxis += 30;
+			}
+			$yAxis += 5;
+
+			// Add Event Title Text to Image
+			foreach ($eventTitleParagraph as $textLine) {
+				imagettftext($imageFrame, $inviteeInfoFontSize, 0, 50, $yAxis, $textColor, $fontFile, $textLine);
+				$yAxis += 30;
+			}
+			$yAxis += 5;
+
+			// Add Date and Time Text to Image
+			imagettftext($imageFrame, $inviteeInfoFontSize, 0, 50, $yAxis, $textColor, $fontFile, $dateTimeText);
+			$yAxis += 35;
+
+			// Add Venue Text to Image
+			foreach ($venueParagraph as $textLine) {
+				imagettftext($imageFrame, $inviteeInfoFontSize, 0, 50, $yAxis, $textColor, $fontFile, $textLine);
+				$yAxis += 30;
+			}
+			$yAxis += 5;
+
+			// Add Important Notice to Image
+			imagettftext($imageFrame, $importantNoticeFontSize, 0, $importantNoticeYCoordinates, $yAxis, $textColor, $fontFile, $importantNoticeText);
+			$yAxis += 60;
+
+			// Add All Rights Reserved to Image
+			imagefilledrectangle($imageFrame, 0, $imgHeight, $imgWidth, $yAxis-30, imagecolorallocate($imageFrame, 0, 123, 255));
+			imagettftext($imageFrame, $allRightsReservedFontSize, 0, $allRightsReservedeYCoordinates, $yAxis, imagecolorallocate($imageFrame, 255, 255, 255), $fontFile, $allRightsReservedText);
+
+			// Encode Image File and Clear It Immediately
+			ob_start();
+			imagepng($imageFrame);
+			$imageFramedata = ob_get_contents();
+			imagedestroy($imageFrame);
+			ob_end_clean();
+
+			return base64_encode($imageFramedata);
 		}
 	}
 ?>

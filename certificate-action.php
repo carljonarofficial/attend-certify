@@ -15,11 +15,11 @@
 	    $member = new CertificateMember();
 	    $addResponse = $member->getCertificate($_POST['inviteeCode'], $_POST['currentEventID']);
 	}
-	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'sendCertificate') {
-	    require_once './model/certificate-member.php';
-	    $member = new CertificateMember();
-	    $addResponse = $member->sendCertificate($_POST['inviteeCode'], $_POST['currentEventID']);
-	}
+	// if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'sendCertificate') {
+	//     require_once './model/certificate-member.php';
+	//     $member = new CertificateMember();
+	//     $addResponse = $member->sendCertificate($_POST['inviteeCode'], $_POST['currentEventID']);
+	// }
 	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'getCertConfig') {
 	    require_once './model/certificate-member.php';
 	    $member = new CertificateMember();
@@ -34,5 +34,10 @@
 	    require_once './model/certificate-member.php';
 	    $member = new CertificateMember();
 	    $addResponse = $member->saveCertConfig($_POST['eventID']);
+	}
+	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'sendSelectedCertificate') {
+	    require_once './model/certificate-member.php';
+	    $member = new CertificateMember();
+	    $addResponse = $member->sendSelectedCertificate($_POST['currentEventID']);
 	}
 ?>

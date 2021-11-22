@@ -163,7 +163,20 @@
 					                    <input type="file" name="certAttachment" id="certAttachment">
 					                </div>
 					                <div class="form-group text-center">
-					                	<button type="submit" name="editevent-btn" id="editevent-btn" value="Edit Event" class="btn btn-success btn-lg rounded-pill"><i class="fas fa-save"></i> Save Event</button>
+					                	<div class="btn-group mt-1">
+					                		<button type="button" class="btn btn-secondary btn-lg rounded-pill" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i> More</button>
+					                		<div class="dropdown-menu dropdown-menu-right p-2">
+					                			<div class="custom-control custom-checkbox">
+					                				<input type="checkbox" class="custom-control-input" id="postponeEvent" name="postponeEvent">
+					                				<label class="custom-control-label" for="postponeEvent">Postpone Event</label>
+					                			</div>
+					                		</div>
+					                	</div>
+										<input type="hidden" name="currentTitle" value="<?php echo $eventTitle;?>">
+					                	<input type="hidden" name="currentDate" value="<?php echo $eventDate;?>">
+										<input type="hidden" name="currentStartTime" value="<?php echo $eventTimeInclusive;?>">
+										<input type="hidden" name="currentEndTime" value="<?php echo $eventTimeConclusive;?>">
+					                	<button type="submit" name="editevent-btn" id="editevent-btn" value="Edit Event" class="btn btn-success btn-lg rounded-pill mt-1"><i class="fas fa-save"></i> Save Event</button>
 					                </div>
 		                        </div>
 		                    </div>

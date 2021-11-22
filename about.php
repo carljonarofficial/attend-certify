@@ -53,78 +53,86 @@
             	<div class="row">
             		<!-- The team leader -->
             		<div class="col">
-            			<div class="card profle-card">
-            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200">
-	                		<div class="card-body">
+            			<div class="card profle-card mx-auto">
+            				<img class="card-img-top w-100 h-100" src="img/profile/palado.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
+	                		<div class="card-body" style="min-height: 263px;">
 	                			<div class="card-title">
-	                				<h4 class="font-weight-bold">CARL JONAR N. PALADO</h4>
+	                				<h4 class="font-weight-bold">CARL JONAR N. <br>PALADO</h4>
 	                			</div>
 	                			<ul class="list-group list-group-flush">
 	                				<li class="list-group-item">
-	                					<h6><i class="fas fa-star"></i> Lead Researcher</h6>
+	                					<h6><i class="fas fa-star" style="width: 20px; text-align: center;"></i> Lead Researcher</h6>
 	                				</li>
 	                				<li class="list-group-item">
-	                					<h6><i class="fas fa-code"></i> Programmer</h6>
+	                					<h6><i class="fas fa-code" style="width: 20px; text-align: center;"></i> Programmer</h6>
 	                				</li>
 	                				<li class="list-group-item">
-	                					<h6><i class="fas fa-pencil-ruler"></i> Designer</h6>
+	                					<h6><i class="fas fa-pencil-ruler" style="width: 20px; text-align: center;"></i> Designer</h6>
 	                				</li>
 	                			</ul>
 	                		</div>
 	                		<div class="card-footer text-center">
-	                			<a href="#" class="card-link social-info" style="color: #1877f2;"><i class="fab fa-facebook"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #00acee;"><i class="fab fa-twitter"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #bc2a8d;"><i class="fab fa-instagram"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #EA4335;"><i class="fas fa-envelope-square"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #28a745;"><i class="fas fa-phone"></i></a>
+	                			<a href="mailto:cjnpalado.ccit@unp.edu.ph" class="card-link social-info" style="color: #EA4335;"><i class="fas fa-envelope-square"></i></a>
 	                		</div>
 	                	</div>
             		</div>
             		<!-- Member 1 -->
             		<div class="col">
             			<div class="card profle-card">
-            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200">
-	                		<div class="card-body">
+            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
+	                		<div class="card-body" style="min-height: 263px;">
 	                			<div class="card-title">
-	                				<h4 class="font-weight-bold">STEVEN D. BALUDDA</h4>
+	                				<h4 class="font-weight-bold">STEVEN D. <br>BALUDDA</h4>
 	                			</div>
 	                			<ul class="list-group list-group-flush">
 	                				<li class="list-group-item">
-	                					<h6><i class="fas fa-pencil-ruler"></i> Designer</h6>
+	                					<h6><i class="fas fa-pencil-ruler" style="width: 20px; text-align: center;"></i> Designer</h6>
 	                				</li>
 	                				<li class="list-group-item">
-	                					<h6><i class="fas fa-file-alt"></i> Documenter</h6>
+	                					<h6><i class="fas fa-file-alt" style="width: 20px; text-align: center;"></i> Documenter</h6>
 	                				</li>
 	                			</ul>
 	                		</div>
 	                		<div class="card-footer text-center">
-	                			<a href="#" class="card-link social-info" style="color: #1877f2;"><i class="fab fa-facebook"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #bc2a8d;"><i class="fab fa-instagram"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #EA4335;"><i class="fas fa-envelope-square"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #28a745;"><i class="fas fa-phone"></i></a>
+	                			<a href="mailto:sdbaludda.ccit@unp.edu.ph" class="card-link social-info" style="color: #EA4335;"><i class="fas fa-envelope-square"></i></a>
 	                		</div>
 	                	</div>
             		</div>
             		<!-- Member 2 -->
             		<div class="col">
             			<div class="card profle-card">
-            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200">
-	                		<div class="card-body">
+            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
+	                		<div class="card-body" style="min-height: 263px;">
 	                			<div class="card-title">
-	                				<h4 class="font-weight-bold">JOHN OLIVER D. PONCE</h4>
+	                				<h4 class="font-weight-bold">JOHN OLIVER D. <br>PONCE</h4>
 	                			</div>
 	                			<ul class="list-group list-group-flush">
 	                				<li class="list-group-item">
-	                					<h6><i class="fas fa-file-alt"></i> Documenter</h6>
+	                					<h6><i class="fas fa-file-alt" style="width: 20px; text-align: center;"></i> Documenter</h6>
 	                				</li>
 	                			</ul>
 	                		</div>
 	                		<div class="card-footer text-center">
-	                			<a href="#" class="card-link social-info" style="color: #1877f2;"><i class="fab fa-facebook"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #00acee;"><i class="fab fa-twitter"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #bc2a8d;"><i class="fab fa-instagram"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #EA4335;"><i class="fas fa-envelope-square"></i></a>
-	                			<a href="#" class="card-link social-info" style="color: #28a745;"><i class="fas fa-phone"></i></a>
+	                			<a href="mailto:jodponce.ccit@unp.edu.ph" class="card-link social-info" style="color: #EA4335;"><i class="fas fa-envelope-square"></i></a>
+	                		</div>
+	                	</div>
+            		</div>
+            		<!-- Adviser -->
+            		<div class="col">
+            			<div class="card profle-card">
+            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
+	                		<div class="card-body" style="min-height: 263px;">
+	                			<div class="card-title">
+	                				<h4 class="font-weight-bold">DARYL V. <br>BUEN</h4>
+	                			</div>
+	                			<ul class="list-group list-group-flush">
+	                				<li class="list-group-item">
+	                					<h6><i class="fas fa-graduation-cap" style="width: 20px; text-align: center;"></i> Adviser</h6>
+	                				</li>
+	                			</ul>
+	                		</div>
+	                		<div class="card-footer text-center" style="min-height: 73px;">
+	                			<!-- Blank -->
 	                		</div>
 	                	</div>
             		</div>

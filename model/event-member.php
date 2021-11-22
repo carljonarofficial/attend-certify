@@ -1,6 +1,15 @@
 <?php 
 	namespace Eventpot;
 
+	use PHPMailer\PHPMailer\PHPMailer;
+	use PHPMailer\PHPMailer\SMTP;
+	use PHPMailer\PHPMailer\Exception;
+
+	//Load Composer's autoloader
+	require 'model/Exception.php';
+	require 'model/PHPMailer.php';
+	require 'model/SMTP.php';
+
 	/**
 	 * 
 	 */
@@ -83,6 +92,9 @@
 			// Set Default Time Zone
 			date_default_timezone_set("Asia/Manila");
 
+			// Validate if the admin logged in
+    		include 'validateLogin.php';
+
 			// Database Connection
 			include 'dbConnection.php';
 
@@ -99,6 +111,12 @@
 			$eventDesciption = $_POST["description"];
 			$eventAgenda = $_POST["agenda"];
 			$eventTheme = $_POST["theme"];
+
+			// Post Current Event Title, Date and Time
+			$currentEventTitle = $_POST["currentTitle"];
+			$currentEventDate = $_POST["currentDate"];
+			$currentTimeInclusive = $_POST["currentStartTime"];
+			$currentTimeConclusive = $_POST["currentEndTime"];
 
 			// Check if Date And Time Already Set an Event
 			$checkExistEvent = $this->checkEventExist($currentAdminID, $eventDate, $eventTimeInclusive, $eventTimeConclusive, $eventID);
@@ -125,9 +143,78 @@
 					// Validate if Update Query is successful or not
 					if ($updateStmt->execute()) {
 						$updateStmt->close();
-						session_start();
-			            $_SESSION["event-crud-validation-msg"] = "edit-success";
-			            session_write_close();
+						// Validate if Postpone Event is Checked
+						if (isset($_POST["postponeEvent"]) && $currentEventDate != $eventDate) {
+							// Formatting Date and Time
+							$currentEventDate = date_format(date_create($currentEventDate),"F d, Y");
+							$currentTimeInclusive = date_format(date_create($currentTimeInclusive),"h:iA");
+							$currentTimeConclusive = date_format(date_create($currentTimeConclusive),"h:iA");
+							$eventDate = date_format(date_create($eventDate),"F d, Y");
+							$eventTimeInclusive = date_format(date_create($eventTimeInclusive),"h:iA");
+							$eventTimeConclusive = date_format(date_create($eventTimeConclusive),"h:iA");
+
+							// Fetch up selected Invitees info from database
+							$selectedStmt = $conn -> prepare("SELECT * FROM `invitees` WHERE `event_ID` = ? AND `status` = 1");
+							$selectedStmt->bind_param("i", $eventID);
+							$selectedStmt->execute();
+							$selectedResults =  $selectedStmt->get_result();
+							$selectedStmt->close();
+
+							if ($selectedResults->num_rows > 0) {
+								// passing true in constructor enables exceptions in PHPMailer
+								$mail = new PHPMailer(true);
+
+								// Server settings
+								$mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
+								$mail->isSMTP();
+								$mail->Host = 'smtp.gmail.com';
+								$mail->SMTPAuth = true;
+								$mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+								$mail->Port = 587;
+								$mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
+								$mail->Password = 'k0rnb33f19'; // YOUR gmail password
+
+								// Setting the general email content
+								$mail->IsHTML(true);
+								$mail->Subject = $eventTitle." - Event Postponement | Attend and Certify";
+
+								$dateToday = date("F d, Y");
+
+								try {
+									// Send Selected Invitees' Postponement Event
+									while ($row = $selectedResults->fetch_assoc()) {
+										$inviteeName =  $row["firstname"] . " ". $row["middlename"] . " ". $row["lastname"];
+										$inviteeEmail =  $row["email"];
+										
+										// Sender and recipient settings
+										$mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+										$mail->addAddress($inviteeEmail, $inviteeName);
+
+										// Add Body Message Using HTML Email
+										$mail->Body = include 'model/html-email-template-for-postpone-event.php';
+
+										$mail->send();
+
+										$mail->clearAddresses();
+									}
+									session_start();
+									$_SESSION["event-crud-validation-msg"] = "edit-success-postpone-success";
+									session_write_close();
+								} catch (Exception $e) {
+									session_start();
+									$_SESSION["event-crud-validation-msg"] = "edit-success-postpone-error";
+									session_write_close();
+								}
+							} else {
+								session_start();
+								$_SESSION["event-crud-validation-msg"] = "edit-success";
+								session_write_close();
+							}
+						} else {
+							session_start();
+							$_SESSION["event-crud-validation-msg"] = "edit-success";
+							session_write_close();
+						}
 					}else{
 						session_start();
 			            $_SESSION["event-crud-validation-msg"] = "edit-error";
@@ -171,14 +258,34 @@
 		*/
 		public function deleteEvent()
 		{
+			// Set Default Time Zone
+			date_default_timezone_set("Asia/Manila");
+
 			// Current Admin ID
 			$currentAdminID = $_SESSION["ID"];
 
 			// Event ID to be deleted
 			$eventID = $_POST["eventId"];
 
+			// Validate if the admin logged in
+    		include 'validateLogin.php';
+
 			// Database Connection
 			include 'dbConnection.php';
+
+			// Fetch up an event information
+			$eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ?");
+	        $eventStmt->bind_param('ii', $id, $eventID);
+	        $eventStmt->execute();
+	        $eventInfo =  $eventStmt->get_result();
+	        $eventStmt->close();
+	        while ($row = $eventInfo->fetch_assoc()) {
+	            $eventTitle = $row["event_title"];
+	            $eventDate = date_format(date_create($row["date"]),"F d, Y");
+	            $eventTimeInclusive = date_format(date_create($row["time_inclusive"]),"h:iA");
+	            $eventTimeConclusive = date_format(date_create($row["time_conclusive"]),"h:iA");
+	            $eventVenue = $row["venue"];
+	        }
 
 			// Delete Query Statement
 			$deleteStmt = $conn->prepare("UPDATE `events` SET `status`= 0 WHERE `admin_ID` = ? AND `ID` = ?");
@@ -187,9 +294,69 @@
 			// Validate if Delete Query Statement is successful or not
 			if ($deleteStmt->execute()) {
 				$deleteStmt->close();
-				session_start();
-	            $_SESSION["event-crud-validation-msg"] = "delete-success";
-	            session_write_close();
+				// Validate if Cancel Event is Checked
+				if (isset($_POST["cancelEvent"])) {
+					// Fetch up selected Invitees info from database
+					$selectedStmt = $conn -> prepare("SELECT * FROM `invitees` WHERE `event_ID` = ? AND `status` = 1");
+					$selectedStmt->bind_param("i", $eventID);
+					$selectedStmt->execute();
+					$selectedResults =  $selectedStmt->get_result();
+					$selectedStmt->close();
+					if ($selectedResults->num_rows > 0) {
+						// passing true in constructor enables exceptions in PHPMailer
+						$mail = new PHPMailer(true);
+
+						// Server settings
+						$mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
+						$mail->isSMTP();
+						$mail->Host = 'smtp.gmail.com';
+						$mail->SMTPAuth = true;
+						$mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+						$mail->Port = 587;
+						$mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
+						$mail->Password = 'k0rnb33f19'; // YOUR gmail password
+
+						// Setting the general email content
+						$mail->IsHTML(true);
+						$mail->Subject = $eventTitle." - Event Cancellation | Attend and Certify";
+
+						$dateToday = date("F d, Y");
+
+						try {
+							// Send  Invitees' Cancellation Event
+							while ($row = $selectedResults->fetch_assoc()) {
+								$inviteeName =  $row["firstname"] . " ". $row["middlename"] . " ". $row["lastname"];
+								$inviteeEmail =  $row["email"];
+								
+								// Sender and recipient settings
+								$mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+								$mail->addAddress($inviteeEmail, $inviteeName);
+
+								// Add Body Message Using HTML Email
+								$mail->Body = include 'model/html-email-template-for-cancel-event.php';
+
+								$mail->send();
+
+								$mail->clearAddresses();
+							}
+							session_start();
+				            $_SESSION["event-crud-validation-msg"] = "delete-success-cancel-success";
+				            session_write_close();
+						} catch (Exception $e) {
+							session_start();
+				            $_SESSION["event-crud-validation-msg"] = "delete-success-cancel-error";
+				            session_write_close();
+						}
+					} else {
+						session_start();
+			            $_SESSION["event-crud-validation-msg"] = "delete-success";
+			            session_write_close();
+					}
+				} else {
+					session_start();
+		            $_SESSION["event-crud-validation-msg"] = "delete-success";
+		            session_write_close();
+				}
 			}else{
 				session_start();
 	            $_SESSION["event-crud-validation-msg"] = "delete-error";

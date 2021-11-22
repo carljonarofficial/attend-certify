@@ -149,7 +149,7 @@
 				valid = false;
 			}
 			if(Password != ConfirmPassword){
-		        $("#error-msg").html("Both passwords must be same.").show();
+		        $("#error-msg").html("* Both must be same.").show();
 		        valid=false;
 		    }else{
 		    	$("#error-msg").html("").hide();

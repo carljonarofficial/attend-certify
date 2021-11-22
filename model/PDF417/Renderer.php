@@ -91,7 +91,7 @@ class Renderer
 		list($R,$G,$B) = $this->options['bgColor']->get();
 		$bgColorAlloc = imagecolorallocate($this->image,$R,$G,$B);
 		imagefill($this->image, 0, 0, $bgColorAlloc);
-		imagestring($this->image, 5, 280, 30, $this->text,  imagecolorallocate($this->image, 0, 0, 0));
+		// imagestring($this->image, 5, 280, 30, $this->text, imagecolorallocate($this->image, 0, 0, 0));
 		list($R,$G,$B) = $this->options['color']->get();
 		$colorAlloc = imagecolorallocate($this->image,$R,$G,$B);
 

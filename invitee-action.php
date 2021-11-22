@@ -31,4 +31,19 @@
 	    $member = new InviteeMember();
 	    $addResponse = $member->sendEmailInvitation($currentEventID);
 	}
+	if(!empty($_POST['inviteeAction']) && $_POST['inviteeAction'] == 'sendSelectedInvitation') {
+	    require_once './model/invitee-member.php';
+	    $member = new InviteeMember();
+	    $addResponse = $member->sendSelectedInvitation($currentEventID);
+	}
+	if(!empty($_POST['inviteeAction']) && $_POST['inviteeAction'] == 'getSelectedInvitees') {
+	    require_once './model/invitee-member.php';
+	    $member = new InviteeMember();
+	    $addResponse = $member->getSelectedInvitees($currentEventID);
+	}
+	if(!empty($_POST['inviteeAction']) && $_POST['inviteeAction'] == 'deleteSelectedInvitees') {
+	    require_once './model/invitee-member.php';
+	    $member = new InviteeMember();
+	    $addResponse = $member->deleteSelectedInvitees($currentEventID);
+	}
 ?>

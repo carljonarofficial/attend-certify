@@ -4,8 +4,13 @@
 	use PHPMailer\PHPMailer\PHPMailer;
 	use PHPMailer\PHPMailer\SMTP;
 	use PHPMailer\PHPMailer\Exception;
+	use setasign\Fpdi\Fpdi;
 
-	//Load Composer's autoloader
+	// FPDI and FPDF
+	require_once('model/fpdf/fpdf.php');
+	require_once('model/fpdi/autoload.php');
+
+	// PHP Mailer
 	require 'model/Exception.php';
 	require 'model/PHPMailer.php';
 	require 'model/SMTP.php';
@@ -24,7 +29,7 @@
     		include 'dbConnection.php';
 
     		// SQL Query
-    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `certificate`.`datetime_generated` ASC)) AS `row_num`, CONCAT(`invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename`) AS `invitee_name`, `certificate`.`invitee_code`, `certificate`.`certificate_code`, `certificate`.`datetime_generated` FROM `invitees`, `certificate` WHERE `certificate`.`invitee_code` = `invitees`.`invitee_code` AND `certificate`.`event_ID` = ? ";
+    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `certificate`.`datetime_generated` ASC)) AS `row_num`, CONCAT( `invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename` ) AS `invitee_name`, `invitees`.`invitee_code`, IF(`certificate`.`certificate_code` IS NULL, 'Not Yet Generated', `certificate`.`certificate_code`) AS `certificate_code`, IF(`certificate`.`datetime_generated` IS NULL, 'Not Yet Generated', `certificate`.`datetime_generated`) AS `datetime_generated` FROM `invitees` LEFT JOIN `certificate` ON `certificate`.`invitee_code` = `invitees`.`invitee_code` WHERE `invitees`.`event_ID` = ? AND ( SELECT COUNT(*) FROM `attendance` WHERE `attendance`.invitee_code = `invitees`.invitee_code ) = 1 ";
 
     		// For Search Query
     		if(!empty($_POST["search"]["value"])){
@@ -66,14 +71,19 @@
 			// Save into array
 			$certificateData = array();
 	        while ($row = $certificateList->fetch_assoc()) {
+	        	$viewStr = '<button type="button" name="viewCertificate" id="'.$row["invitee_code"].'" class="btn btn-primary btn-xs viewCertificate w-100"><i class="fas fa-eye"></i> View</button>';
+	        	if ($row["certificate_code"] == "Not Yet Generated") {
+	        		$viewStr = "";
+	        	}
 	        	$ivtRows = array(
-	        		"view" => '<button type="button" name="viewCertificate" id="'.$row["invitee_code"].'" class="btn btn-primary btn-xs viewCertificate w-100"><i class="fas fa-eye"></i> View</button>',
+	        		"view" => $viewStr,
 		        	"row_num" => $row["row_num"],
 		        	"invitee_name" => $row["invitee_name"],
 		        	"invitee_code" => $row["invitee_code"],
 		        	"certificate_code" => $row["certificate_code"],
 		        	"datetime_generated" => $row["datetime_generated"],
-		        	"send" => '<button type="button" name="sendEmailCertificate" id="'.$row["invitee_code"].'" class="btn btn-success btn-xs sendCertificate w-100"><i class="fas fa-envelope"></i> Send</button>',
+		        	// "send" => '<button type="button" name="sendEmailCertificate" id="'.$row["invitee_code"].'" class="btn btn-info btn-xs sendCertificate w-100"><i class="fas fa-envelope"></i> Send</button>',
+		        	"send" => '<input type="checkbox" class="selectAttendance" value="'.$row["invitee_code"].'">'
 	        	);
 	        	$certificateData[] = $ivtRows;
 	        	$numFiltered++;
@@ -92,32 +102,46 @@
 		*/
 		public function validateCertificate($selectedEventID, $scannedCertificateCode)
 		{
+			// Initial Placeholder Variable for Invitee Name
+    		$scannedCertificateName = "";
+
 			// Check if the Certificate Code Matches Pattern
 			if (preg_match("/^((\d){14})-CERT-(([A-Z0-9]){6})$/", $scannedCertificateCode)) {
 				// Using database connection file here
 	    		include 'dbConnection.php';
 
 	    		// SQL Query to scan if the certificate code is valid
-	    		$sqlScanQuery = "SELECT * FROM `certificate` WHERE `event_ID` = ? AND `certificate_code` = ?";
+	    		$sqlScanQuery = "SELECT CONCAT(`invitees`.`firstname`, ' ',`invitees`.`middlename`, ' ',`invitees`.`lastname`) as `fullname` FROM `certificate` INNER JOIN `invitees` ON `certificate`.`invitee_code` = `invitees`.`invitee_code` WHERE `certificate`.`event_ID` = ? AND `certificate`.`certificate_code` = ?";
 
 	    		// Fetch up the scan result
 	    		$scanStmt = $conn->prepare($sqlScanQuery);
 		        $scanStmt->bind_param('is', $selectedEventID, $scannedCertificateCode);
-		        $scanStmt->execute();
-		        $scanResult =  $scanStmt->get_result();
-		        $scanStmt->close();
 
 	    		// Check if the query is successful
-	    		if ($scanResult->num_rows > 0) { // If the invitee code registered
-	    			// It will out success message
-	    			$output = array("scanStatus" => "success");
-	    		} else { // If the invitee code not registered
-					// It will output invalid code message
-					$output = array("scanStatus" => "invalid");
-				}
+		        if ($scanStmt->execute()) {
+		        	$scanResult =  $scanStmt->get_result();
+		        	$scanStmt->close();
+
+		        	// Check if the invitee code registered
+		    		if ($scanResult->num_rows > 0) {
+		    			// Fetch Up Certificate Information
+						while ($row = $scanResult->fetch_assoc()) {
+							$scannedCertificateName = $row['fullname'];
+						}
+		    			// It will out success message
+		    			$output = array("scanStatus" => "success", "scannedCertificateName" => $scannedCertificateName);
+		    		} else { // If the invitee code not registered
+						// It will output invalid code message
+						$output = array("scanStatus" => "invalid", "scannedCertificateName" => "Certificate Doesn't Exist");
+					}
+		        } else {
+		        	// It will output error message
+		        	$output = array("scanStatus" => "invalid", "scannedCertificateName" => "Error");
+		        }
+	    		
 			} else {
 				// It will output invalid code message
-				$output = array("scanStatus" => "invalid");
+				$output = array("scanStatus" => "invalid", "scannedCertificateName" => "Invalid Certificate");
 			}
 			
 			echo json_encode($output);
@@ -270,6 +294,168 @@
 	        	$response = array('Status' => "error");
 				echo json_encode($response);
 	        }
+		}
+
+		/**
+		 * To send selected certificate/s
+		*/
+		public function sendSelectedCertificate($currentEventID)
+		{
+			// Fetch Selected Invitee IDs and Count them
+			$selectedInviteeCodes = $_POST["selectedInviteeCodes"];
+			$selectedInviteeCodes = json_decode($selectedInviteeCodes);
+			$idsCount = count($selectedInviteeCodes);
+
+			// Set Default Time Zone and Date Today
+			date_default_timezone_set("Asia/Manila");
+			$dateToday = date("F d, Y");
+
+			// Validate if the admin logged in
+    		include 'validateLogin.php';
+
+			// Database Connection
+			include 'dbConnection.php';
+
+			// Fetch up an event information
+			$eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ?");
+	        $eventStmt->bind_param('ii', $id, $currentEventID);
+	        $eventStmt->execute();
+	        $eventInfo =  $eventStmt->get_result();
+	        $eventStmt->close();
+	        while ($row = $eventInfo->fetch_assoc()) {
+	            $eventTitle = $row["event_title"];
+	            $eventDate = date_format(date_create($row["date"]),"F d, Y");
+	            $eventTimeInclusive = date_format(date_create($row["time_inclusive"]),"h:iA");
+	            $eventTimeConclusive = date_format(date_create($row["time_conclusive"]),"h:iA");
+	            $eventVenue = $row["venue"];
+	            $certTemplate = $row["certificate_template"];
+	        }
+
+	        // Check query if certificate/s are missing
+	        $checkCertStmt = $conn->prepare("SELECT `attendance`.`invitee_code`, IF(`certificate`.`certificate_code` IS NULL, 0, 1) as `cert_status` FROM `attendance` LEFT JOIN `certificate` ON `attendance`.`invitee_code` = `certificate`.`invitee_code` WHERE `attendance`.`event_ID` = ? AND `attendance`.`status` = 1 AND `certificate`.`certificate_code` IS NULL");
+	        $checkCertStmt->bind_param('i', $currentEventID);
+	        $checkCertStmt->execute();
+	        $checkCertInfo =  $checkCertStmt->get_result();
+	        $checkCertStmt->close();
+	        if ($checkCertInfo->num_rows > 0) {
+		        // Prepare and Bind Missing Certificates
+				$insertMissingStmt = $conn->prepare("INSERT INTO `certificate`(`event_ID`, `invitee_code`, `certificate_code`) VALUES (?,?,?)");
+				$insertMissingStmt->bind_param("iss", $currentEventID, $inviteeCode, $certficateCode);
+
+				// Check if the invitee is missing certificate
+				while ($row = $checkCertInfo->fetch_assoc()) {
+					if ($row['cert_status'] == 0) {
+						// Generate Certificate Code Param
+			    		$certficateCode  = date("YmdHis")."-CERT-".strtoupper(substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyz'), 0, 6));
+
+			    		// Set Event ID and Invitee Code Params
+						$currentEventID = $currentEventID;
+						$inviteeCode = $row['invitee_code'];
+
+						// Execute Missing Certificate
+						$insertMissingStmt->execute();
+					}
+				}
+				$insertMissingStmt->close();
+	        }
+
+	        // Create Placeholder for Prepared Statements and Bind String
+			$idsPlaceholders = implode(',', array_fill(0, $idsCount, '?'));
+			$bindStr = str_repeat('s', $idsCount);
+
+	        // Fetch up the selected certificate/s information
+	        $certificateStmt = $conn->prepare("SELECT `certificate`.`ID`, CONCAT(`invitees`.`firstname`, ' ', `invitees`.`middlename`, ' ', `invitees`.`lastname`) AS `invitee_name`, `invitees`.`email`, `certificate`.`certificate_code` FROM `certificate` INNER JOIN `invitees` ON `invitees`.`invitee_code` = `certificate`.`invitee_code` WHERE `certificate`.`event_ID` = ? AND `certificate`.`invitee_code` IN ($idsPlaceholders) ORDER BY `certificate`.`ID` ASC");
+	        $certificateStmt->bind_param("i".$bindStr, $currentEventID, ...$selectedInviteeCodes);
+	        $certificateStmt->execute();
+	        $certificateInfo =  $certificateStmt->get_result();
+	        $certificateStmt->close();
+
+	        // passing true in constructor enables exceptions in PHPMailer
+			$mail = new PHPMailer(true);
+
+			// Server settings
+		    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
+		    $mail->isSMTP();
+		    $mail->Host = 'smtp.gmail.com';
+		    $mail->SMTPAuth = true;
+		    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+		    $mail->Port = 587;
+		    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
+		    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+
+		    // Sender settings
+		    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+
+		    // Setting the email content
+		    $mail->IsHTML(true);
+		    $mail->Subject = "Certificate: ". $eventTitle ." | Attend and Certify";
+
+	        // Include Barcode Generator
+			include "model/bulk-certificate-generator.php";
+
+			$response = "error";
+
+			// Send Selected Certificate/s
+	        while ($row = $certificateInfo->fetch_assoc()){
+	        	$certNameInvitee = $row["invitee_name"];
+	        	$certEmailInvitee = $row["email"];
+	        	$certCode = $row["certificate_code"];
+
+	        	try {
+	        		// Encode and Generate Certificate Barcode
+		        	$pdf417->encode($certCode);
+
+		        	// Get Base64 Encoded Certificate Barcode
+				    $certBarcodeBase64 = "data:image/png;base64,".$pdf417->forWeb("BASE64", $certCode);
+
+				    // initiate FPDI
+					$pdf = new Fpdi();
+					// add a page
+					$pdf->AddPage($certOrientation, $certSize);
+					// set the source file
+					$pdf->setSourceFile('certificate-templates/'.$certTemplate);
+					// import page 1
+					$tplIdx = $pdf->importPage(1);
+					// use the imported page and place it at position 0, 0
+					$pdf->useTemplate($tplIdx, 0, 0);
+
+					// now write some text above the imported page
+					$pdf->SetFont($certTextFont, $certTextFontStyle, $certTextFontSize);
+					// Set text Color
+					$pdf->SetTextColor($certTextFontColorR, $certTextFontColorG, $certTextFontColorB);
+					// Set text position
+					$pdf->SetXY($certTextPositionX, $certTextPositionY);
+					// Centered text in a framed 20*10 mm cell and line break
+					$pdf->Cell(20,10,$certNameInvitee,0,0,'C');
+					// Insert Certificate Code Barcode
+					$pdf->Image($certBarcodeBase64, $certBarcodePositionX, $certBarcodePositionY, 70, 0, 'png'); // X start, Y start, X width, Y width in mm
+					// Generate and Get Base64 Data
+					$str = $pdf->Output('S', $certCode.'.pdf');
+					$strBase64 =  base64_encode($str);
+
+					// Get Certificate Base64
+				    $certificateFileData = 'data:application/pdf;base64,'.$strBase64;
+
+					// Recipient Setting
+				    $mail->addAddress($certEmailInvitee, $certNameInvitee);
+
+				    // Email Body
+				    $mail->Body = include 'model/html-email-template-for-certificate.php';
+
+				    // Add Static Attachment
+				    $mail->clearAttachments();
+					$mail->AddStringAttachment(base64_decode(substr($certificateFileData, strpos($certificateFileData, ","))), $certNameInvitee.' - '.$eventTitle.' - Certificate.pdf', 'base64', 'application/pdf');
+
+				    $mail->send();
+				    
+				    $mail->clearAddresses();
+
+				    $response = "success";
+	        	} catch (Exception $e) {
+	        		$response = "error";
+	        	}
+	        }
+	        echo json_encode(array('Status' => $response));
 		}
 
 		/**

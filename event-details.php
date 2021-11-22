@@ -62,9 +62,11 @@
     <!-- Datatables Styles -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
     <link rel="stylesheet" type="text/css" href="style/jquery.dataTables-custom.css">
+    <link type="text/css" href="https://cdn.datatables.net/select/1.3.3/css/select.dataTables.min.css" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/buttons/1.7.1/css/buttons.dataTables.min.css">
     <!-- Datatables Scripts -->
     <script src="scripts/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/select/1.3.3/js/dataTables.select.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
@@ -187,9 +189,11 @@
                                         </div>
                                         <div class="mb-3 mr-3">
                                             <!-- Add Invitee -->
-                                            <div class="col-sm-4 mt-3">
+                                            <div class="col-sm-6 mt-3">
                                                 <div class="input-group">
                                                     <button class="h4 btn btn-success btn-lg-add-invitee rounded-pill" id="addInvitee" data-toggle="modal" data-target="#addEditInviteeModal"><i class="fa fa-plus-circle"></i> ADD INVITEE</button>
+                                                    <button class="h4 btn btn-info btn-lg-add-invitee rounded-pill ml-1" id="sendSelectedInvitations" style="display: none;"><i class="fas fa-envelope"></i> SEND</button>
+                                                    <button class="h4 btn btn-danger btn-lg-add-invitee rounded-pill ml-1" id="deleteSelectedInvitations" style="display: none;"><i class="fas fa-trash-alt"></i> DELETE</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -203,9 +207,8 @@
                                                         <th id="inviteeMName">Middle Initial</th>
                                                         <th id="inviteeLName">Last Name</th>
                                                         <th id="inviteeType">Type</th>
-                                                        <th id="inviteeSend"></th>
-                                                        <th id="inviteeEdit"></th>
-                                                        <th id="inviteeDelete"></th>
+                                                        <th id="inviteeMore"></th>
+                                                        <th id="inviteeCheckBox"><input type="checkbox" id="selectAllInvitees"></th>
                                                     </tr>
                                                 </thead>
                                             </table>
@@ -287,6 +290,34 @@
                                                             <!-- <input type="submit" name="inviteeSave" id="inviteeSave" class="btn btn-info" value="Save" /> -->
                                                         </div>
                                                     </form>                 
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- Delete Selected Invitee Modal -->
+                                        <div class="modal" id="deleteSelectedInviteeModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalTitle" aria-hidden="true" data-backdrop="static">
+                                            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-danger">
+                                                        <h4 class="modal-title text-light" ><i class="fas fa-exclamation-triangle"></i> Are you sure to delete these selected invitee/s?</h5>
+                                                        <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <h5><i class="fas fa-users"></i> Selected Invitees: </h5>
+                                                        <h6>
+                                                            <ul id="selected-invitees-deletion">
+                                                                <!-- Selected Invitees Placeholder -->
+                                                            </ul>
+                                                        </h6>
+                                                        <p>After you delete them. You will not able to retrieve them, please be careful.</p>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <form method="post" id="inviteeSelectedDeleteForm">
+                                                            <button type="submit" class="btn btn-danger" name="inviteeDelete" value="Delete" id="inviteeDelete"><i class="fas fa-trash"></i> Yes</button>
+                                                        </form>
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-arrow-circle-left"></i> No</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>

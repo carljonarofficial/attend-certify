@@ -31,13 +31,12 @@
                 font-size: 2rem;
             }
         }
+        .container-scan-barcode {
+            border-radius: 25px;
+        }
         .accordion-override {
             background-color: white;
             border-radius: 25px;
-        }
-        .container-scan-barcode{
-            max-width: 500px;
-            /*border-radius: 25px;*/
         }
         #snackbar {
             visibility: hidden;
@@ -48,7 +47,7 @@
             border-radius: 10px;
             padding: 16px;
             position: fixed;
-            z-index: 1;
+            z-index: 1060;
             left: 50%;
             right: 50%;
             top: 100px;
@@ -74,6 +73,7 @@
     <!-- Datatables Scripts -->
     <script src="scripts/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/fixedcolumns/3.3.3/js/dataTables.fixedColumns.min.js"></script>
+    <script src="https://cdn.datatables.net/select/1.3.3/js/dataTables.select.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
@@ -132,11 +132,11 @@
                     <div class="row">
                         <!-- Certificate Button -->
                         <div class="col-sm-6 mt-1 d-flex justify-content-center" id="headingOne">
-                            <button class="btn btn-success btn-lg-add-event btn-lg-event-invitee" type="button" data-toggle="collapse" data-target="#collapseCertificate" aria-expanded="true" aria-controls="collapseOne" onclick="buttonFlagFunc(0)"><i class="fas fa-certificate"></i> CERTIFICATES</button>
+                            <button class="btn btn-success btn-lg-add-event btn-lg-event-invitee" type="button" data-toggle="collapse" data-target="#collapseCertificate" aria-expanded="true" aria-controls="collapseOne" onclick="buttonFlagFunc()"><i class="fas fa-certificate"></i> CERTIFICATES</button>
                         </div>
                         <!-- Validate Button -->
                         <div class="col-sm-6 mt-1 d-flex justify-content-center" id="headingTwo">
-                            <button class="btn btn-primary btn-lg-add-event btn-lg-event-invitee" type="button" data-toggle="collapse" data-target="#collapseValidate" aria-expanded="false" aria-controls="collapseTwo" onclick="buttonFlagFunc(1)"><i class="far fa-check-square"></i> VALIDATE</button>
+                            <button class="btn btn-primary btn-lg-add-event btn-lg-event-invitee" type="button" id="validateCertBtn" data-toggle="modal" data-target="#validateCertificateBarcodeModal"><i class="far fa-check-square"></i> VALIDATE</button>
                         </div>
                     </div>
                 </div>
@@ -159,7 +159,10 @@
                                                     <th id="certificateInviteeCode">Invitee Code</th>
                                                     <th id="certificateCode">Certificate Code</th>
                                                     <th id="certificateDateTime">Date and Time Generated</th>
-                                                    <th id="certificateSend"></th>
+                                                    <th id="certificateSend">
+                                                        <button class="btn btn-info btn-lg-add-invitee" id="sendSelectedCertificates" style="display: none; margin-right: 0.5rem;"><i class="fas fa-envelope"></i> SEND</button>
+                                                        <input type="checkbox" id="selectAllInvitees">
+                                                    </th>
                                                 </tr>
                                             </thead>
                                         </table>
@@ -191,15 +194,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                        <!-- Certificate Part -->
-                        <div class="event-attendance-details">
-                            <div id="collapseValidate" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionCertificate">
-                                <div class="card-body" style="padding: 0;">
-                                    <!-- Barcode Reader -->
-                                    <div id="qr-reader" class="container container-scan-barcode bg-white" style="border: 1px solid grey;"></div>
                                 </div>
                             </div>
                         </div>
@@ -340,6 +334,67 @@
                         </div>
                     </div>
                 </div>
+                <!-- Validate Certificate Barcode Modal -->
+                <div class="modal" id="validateCertificateBarcodeModal" tabindex="-1" role="dialog" aria-labelledby="viewModalTitle" aria-hidden="true" data-backdrop="static">
+                    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                        <div class="modal-content container-scan-barcode" id="validateCertificateContent" style="border: 10px solid #929eaa;">
+                            <div class="modal-header bg-primary add-edit-invitee-override">
+                                <h4 class="modal-title text-light"><span id="titleValidateCert"></span> | Scan to Validate Certificate Barcode</h5>
+                                <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <!-- Camera Mode Content -->
+                                <div id="cameraModeContent">
+                                    <!-- Permission Status -->
+                                    <div id="permissionStatus" class="text-center" style="font-weight: 700; color: #ff0000;">
+                                        <p><i class="fas fa-info-circle"></i> Please approve permission first.</p>
+                                    </div>
+                                    <!-- QR Code Reader Content -->
+                                    <div id="qr-reader-content" style="display: none;">
+                                        <div id="qr-reader" class="mb-2" style="max-width: 500px; margin: auto;"></div>
+                                        <div id="qrButtonControls" class="text-center">
+                                            <div id="qrStartSelection">
+                                                <select id="cameraSelection" class="form-control col-sm-6 mx-auto mb-1">
+                                                    <!-- Camera Selection -->
+                                                </select>
+                                                <button id="startQRCodeScanner" class="btn btn-success mb-1"><i class="fas fa-play"></i> Start Scanning</button>
+                                            </div>
+                                            <button id="stopQRCodeScanner" class="btn btn-danger mb-1" style="display: none;"><i class="fas fa-stop"></i> Stop Scanning</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Code Input  Content-->
+                                <div id="codeInputModeContent" style="display: none;">
+                                    <form id="codeInputModeForm">
+                                        <div class="form-group text-center container">
+                                            <label for="ceritifcateCodeInput" class="label-add-edit-event">Please Enter Certificate Code <span id="requiredCodeInputError"></span></label>
+                                            <input type="text" class="form-control mx-auto mb-2" id="inviteeCodeInput" name="inviteeCodeInput" style="max-width: 400px">
+                                            <button type="submit" class="btn btn-success"><i class="fas fa-sign-in-alt"></i> Enter</button>
+                                            <small class="form-text">You can use barcode scanner which is optional.</small>
+                                        </div>
+                                    </form>
+                                </div>
+                                <!-- Scan Selection Mode -->
+                                <div class="form-group text-center mb-2">
+                                    <label for="scanSelectionMode">Scan Mode: </label>
+                                    <select id="scanSelectionMode" class="form-control col-sm-6 mx-auto">
+                                        <option value="cameraMode">Camera</option>
+                                        <option value="codeInputMode">Code Input</option>
+                                    </select>
+                                </div>
+                                <!-- Scanned Result Message -->
+                                <div class="p-3 text-light rounded" id="scannedResultMsg" style="display: none">
+                                    <p class="font-weight-bolder mb-0">Result: <span class="float-right"><a href="javascript:void(0)" class="text-light" id="closeScannedResult" data-toggle="tooltip" title="Close Message" ><i class="fas fa-times"></i></a></span></p>
+                                    <p class="mb-0" id="scannedCertificateName"></p>
+                                    <p class="mb-0">Code: <span id="scannedCertificateCode"></span></p>
+                                    <p class="mb-0">Status: <span id="scannedCertificateResult"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -353,35 +408,20 @@
     <script src="scripts/certificate-ajax.js"></script>
     <script>
         var certificateBtnFlag = true;
-        var validateBtnFlag = true;
 
         // Get Certificate Status Snackbar
         var statusSnackBar = document.getElementById("snackbar");
 
         // Get Barcode Reader
-        var barcodeReader = document.getElementById("barcode-reader");
+        var barcodeReader = document.getElementById("validateCertificateContent");
 
-        function buttonFlagFunc(flag) {
-            if (flag == 1) {
-                if (certificateBtnFlag == true) {
-                    document.getElementById("accordionInfo").style.display = "none";
-                    certificateBtnFlag = false;
-                    validateBtnFlag = true;
-                }else{
-                    document.getElementById("accordionInfo").style.display = "initial";
-                    certificateBtnFlag = true;
-                    validateBtnFlag = true;
-                }
-            }else{
-                if (validateBtnFlag == true) {
-                    document.getElementById("accordionInfo").style.display = "none";
-                    validateBtnFlag = false;
-                    certificateBtnFlag = true;
-                }else{
-                    document.getElementById("accordionInfo").style.display = "initial";
-                    validateBtnFlag = true;
-                    certificateBtnFlag = true;
-                }
+        function buttonFlagFunc() {
+            if (certificateBtnFlag == true) {
+                document.getElementById("accordionInfo").style.display = "none";
+                certificateBtnFlag = false;
+            } else {
+                document.getElementById("accordionInfo").style.display = "initial";
+                certificateBtnFlag = true;
             }
         }
 

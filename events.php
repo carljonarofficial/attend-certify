@@ -112,9 +112,25 @@
                         <div class="w-100 p-3 mt-3 shadow-sm rounded bg-success text-light response">
                             <h4>EDIT EVENT SUCCESSFULLY</h4>
                         </div>
+                    <?php } else if ($eventcrud_msg == "edit-success-postpone-success"){?>
+                        <div class="w-100 p-3 mt-3 shadow-sm rounded bg-success text-light response">
+                            <h4>EDIT EVENT SUCCESSFULLY, A POSTPONEMENT EMAIL HAS BEEN SENT TO THE INVITEES</h4>
+                        </div>
+                    <?php } else if ($eventcrud_msg == "edit-success-postpone-error"){?>
+                        <div class="w-100 p-3 mt-3 shadow-sm rounded bg-warning text-light response">
+                            <h4>EDIT EVENT SUCCESSFULLY, A POSTPONEMENT EMAIL FAILED TO SENT</h4>
+                        </div>
                     <?php } else if ($eventcrud_msg == "delete-success"){?>
                         <div class="w-100 p-3 mt-3 shadow-sm rounded bg-danger text-light response">
                             <h4>DELETE EVENT SUCCESSFULLY</h4>
+                        </div>
+                    <?php } else if ($eventcrud_msg == "delete-success-cancel-success"){?>
+                        <div class="w-100 p-3 mt-3 shadow-sm rounded bg-danger text-light response">
+                            <h4>DELETE EVENT SUCCESSFULLY, A CANCELLATION EMAIL HAS BEEN SENT TO THE INVITEES</h4>
+                        </div>
+                    <?php } else if ($eventcrud_msg == "delete-success-cancel-error"){?>
+                        <div class="w-100 p-3 mt-3 shadow-sm rounded bg-danger text-light response">
+                            <h4>DELETE EVENT SUCCESSFULLY, A CANCELLATION EMAIL FAILED TO SENT</h4>
                         </div>
                     <?php } else if ($eventcrud_msg == "delete-error"){?>
                         <div class="w-100 p-3 mt-3 shadow-sm rounded bg-danger text-light response">
@@ -193,7 +209,7 @@
                                     <div class="col-lg-3 col-sm-6">
                                         <div class="card hovercard shadow-sm">
                                             <div class="card-header p-0">
-                                                <img class="card-img-top" src="img/assets/card_01.png" alt="Card image cap">
+                                                <img class="card-img-top" src="img/assets/card_01.png" alt="Card image cap" onContextMenu="return false;"  ondragstart="return false;">
                                             </div>
                                             <div class="card-body info bg-light">
                                                 <div class="card-title text-left font-weight-bolder">
@@ -232,13 +248,17 @@
                                                     <h5><i class="fa fa-calendar"></i> Title: <?php echo $row['event_title'];?></h5>
                                                     <p>After you delete this. You will not able to retrieve this, please be careful.</p>
                                                 </div>
-                                                <div class="modal-footer">
-                                                    <form name="deleteEvent" action="" method="post">
+                                                <form name="deleteEvent" action="" method="post">
+                                                    <div class="modal-footer">
+                                                        <div class="custom-control custom-checkbox mr-auto">
+                                                            <input type="checkbox" class="custom-control-input" id="cancelEvent" name="cancelEvent">
+                                                            <label class="custom-control-label" for="cancelEvent">Check this to cancel event and send to the invitees concerned.</label>
+                                                        </div>
                                                         <input type="hidden" name='eventId' value="<?php echo $row['ID']; ?>" />
                                                         <button type="submit" name="deleteEvent-btn" id="deleteEvent-btn" value="Delete Event" class="btn btn-danger"><i class="fas fa-trash"></i> Yes</button>
-                                                    </form>
-                                                    <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-arrow-circle-left"></i> No</button>
-                                                </div>
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-arrow-circle-left"></i> No</button>
+                                                    </div>
+                                                </form>
                                             </div>
                                         </div>
                                     </div>

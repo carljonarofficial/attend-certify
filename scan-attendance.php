@@ -44,8 +44,12 @@
     ?>
     <!-- Custom Styles -->
     <style>
-    	.container-scan-barcode{
-    		max-width: 500px;
+        @media only screen and (max-width: 280px) {
+            .header-title {
+                font-size: 2rem;
+            }
+        }
+    	.container-scan-barcode {
             /*background-color: white;
             border: 10px solid #929eaa!important;*/
             border-radius: 25px;
@@ -60,7 +64,7 @@
             border-radius: 10px;
             padding: 16px;
             position: fixed;
-            z-index: 1;
+            z-index: 1060;
             left: 50%;
             right: 50%;
             top: 100px;
@@ -86,6 +90,7 @@
     <!-- Datatables Scripts -->
     <script src="scripts/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/fixedcolumns/3.3.3/js/dataTables.fixedColumns.min.js"></script>
+    <script src="https://cdn.datatables.net/select/1.3.3/js/dataTables.select.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/1.7.1/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
@@ -123,7 +128,7 @@
     		<!-- Title Tab -->
             <div class="w-100 p-3 shadow-sm rounded bg-light text-dark">
                 <input type="hidden" id="current-event-ID" value="<?php echo $eventID;?>">
-                <h1 class="font-weight-bold" id="current-event-title"><?php echo $eventTitle;?></h1>
+                <h1 class="font-weight-bold header-title" id="current-event-title"><?php echo $eventTitle;?></h1>
                 <h2 class="pl-3 font-weight-normal">Scan Attendance and Generate Certificate Immediately.</h2>
             </div>
             <!-- Go Back to Events Button -->
@@ -134,7 +139,10 @@
                 // Check if the fetch is successful
                 if ($scanAttendanceErrorFlag == true) { ?>
                     <!-- Barcode Reader -->
-                    <div id="qr-reader" class="container container-scan-barcode bg-white my-3" style="border: 10px solid #929eaa!important;"></div>
+                    <!-- <div id="qr-reader" class="container container-scan-barcode bg-white my-3" style="border: 10px solid #929eaa;"></div> -->
+                    <div class="mx-auto text-center">
+                        <button class="btn btn-success btn-lg-add-event" id="scanAttendanceBtn" data-toggle="modal" data-target="#scanAttendanceModal"><i class="fas fa-check"></i> CLICK HERE TO SCAN ATTENDANCE</button>
+                    </div>
                     <!-- Toggle Between Attendance and Invitee List Buttons -->
                     <div class="container mt-2 mb-2 p-2 border-form-override event-invitee-parent">
                         <div class="row">
@@ -165,7 +173,10 @@
                                                         <th id="attendanceInviteeCode">Invitee Code</th>
                                                         <th id="attendanceType">Type</th>
                                                         <th id="attendanceDateTime">Date and Time</th>
-                                                        <th id="attendanceSend"></th>
+                                                        <th id="attendanceSend">
+                                                            <button class="btn btn-info btn-lg-add-invitee" id="sendSelectedCertificates" style="display: none; margin-right: 0.5rem;"><i class="fas fa-envelope"></i> SEND</button>
+                                                            <input type="checkbox" id="selectAllInvitees">
+                                                        </th>
                                                     </tr>
                                                 </thead>
                                             </table>
@@ -214,7 +225,7 @@
                     </div>
                     <!-- The certificate options modal -->
                     <div  id="certOptionsModal" class="modal" data-backdrop="static" data-keyboard="false" tabindex="-1">
-                        <div class="modal-dialog modal-dialog-centered modal-lg" role="document" style="max-width: 600px;">
+                        <div class="modal-dialog modal-dialog-centered modal-lg" role="document" style="max-width: 650px;">
                             <div class="modal-content border-form-override">
                                 <div class="modal-header bg-primary add-edit-invitee-override">
                                     <h5 class="modal-title text-light add-edit-invitee-title" id="exampleAddEditInvitee"><i class="fas fa-cog"></i> Options</h5>
@@ -226,6 +237,29 @@
                                     <div class="modal-body">
                                         <div class="row">
                                             <div class="col-sm-6">
+                                                <div class="form-group">
+                                                    <label for="certLayout" class="label-add-edit-event">Attendance Config:</label>
+                                                    <div class="p-2 time-event">
+                                                        <div class="form-group">
+                                                            <label class="label-add-edit-event">Generate Certificate:</label>
+                                                            <div class="custom-control custom-radio custom-control-inline ml-1">
+                                                                <input type="radio" id="generateCertAuto" name="generateCert" class="custom-control-input" value="Auto" checked>
+                                                                <label class="custom-control-label" for="generateCertAuto">Automatic</label>
+                                                            </div>
+                                                            <div class="custom-control custom-radio custom-control-inline">
+                                                                <input type="radio" id="generateCertManual" name="generateCert" class="custom-control-input" value="Manual">
+                                                                <label class="custom-control-label" for="generateCertManual">Manual</label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="label-add-edit-event">Send Certificate After Attendance:</label>
+                                                            <div class="custom-control custom-switch ml-1">
+                                                                <input type="checkbox" class="custom-control-input" id="sendCert" name="sendCert">
+                                                                <label class="custom-control-label" for="sendCert" id="sendCertLabel">No</label>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                                 <div class="form-group">
                                                     <label for="certLayout" class="label-add-edit-event">Certificate Layout:</label>
                                                     <div class="p-2 time-event">
@@ -347,6 +381,67 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Scan Attendance Modal -->
+                    <div class="modal" id="scanAttendanceModal" tabindex="-1" role="dialog" aria-labelledby="viewModalTitle" aria-hidden="true" data-backdrop="static">
+                        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+                            <div class="modal-content container-scan-barcode" id="scanAttendanceContent" style="border: 10px solid #929eaa;">
+                                <div class="modal-header bg-primary add-edit-invitee-override">
+                                    <h4 class="modal-title text-light"><?php echo $eventTitle;?> | Scan Attendance</h5>
+                                    <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- Camera Mode Content -->
+                                    <div id="cameraModeContent">
+                                        <!-- Permission Status -->
+                                        <div id="permissionStatus" class="text-center" style="font-weight: 700; color: #ff0000;">
+                                            <p><i class="fas fa-info-circle"></i> Please approve permission first.</p>
+                                        </div>
+                                        <!-- QR Code Reader Content -->
+                                        <div id="qr-reader-content" style="display: none;">
+                                            <div id="qr-reader" class="mb-2" style="max-width: 500px; margin: auto;"></div>
+                                            <div id="qrButtonControls" class="text-center">
+                                                <div id="qrStartSelection">
+                                                    <select id="cameraSelection" class="form-control col-sm-6 mx-auto mb-1">
+                                                        <!-- Camera Selection -->
+                                                    </select>
+                                                    <button id="startQRCodeScanner" class="btn btn-success mb-1"><i class="fas fa-play"></i> Start Scanning</button>
+                                                </div>
+                                                <button id="stopQRCodeScanner" class="btn btn-danger mb-1" style="display: none;"><i class="fas fa-stop"></i> Stop Scanning</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Code Input  Content-->
+                                    <div id="codeInputModeContent" style="display: none;">
+                                        <form id="codeInputModeForm">
+                                            <div class="form-group text-center container">
+                                                <label for="inviteeCodeInput" class="label-add-edit-event">Please Enter Invitee Code <span id="requiredCodeInputError"></span></label>
+                                                <input type="text" class="form-control mx-auto mb-2" id="inviteeCodeInput" name="inviteeCodeInput" style="max-width: 400px">
+                                                <button type="submit" class="btn btn-success"><i class="fas fa-sign-in-alt"></i> Enter</button>
+                                                <small class="form-text">You can use barcode scanner which is optional.</small>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <!-- Scan Selection Mode -->
+                                    <div class="form-group text-center mb-2">
+                                        <label for="scanSelectionMode">Scan Mode: </label>
+                                        <select id="scanSelectionMode" class="form-control col-sm-6 mx-auto">
+                                            <option value="cameraMode">Camera</option>
+                                            <option value="codeInputMode">Code Input</option>
+                                        </select>
+                                    </div>
+                                    <!-- Scanned Result Message -->
+                                    <div class="p-3 text-light rounded" id="scannedResultMsg" style="display: none">
+                                        <p class="font-weight-bolder mb-0">RESULT: <span class="float-right"><a href="javascript:void(0)" class="text-light" id="closeScannedResult" data-toggle="tooltip" title="Close Message" ><i class="fas fa-times"></i></a></span></p>
+                                        <p class="mb-0" id="scannedInviteeName"></p>
+                                        <p class="mb-0">Code: <span id="scannedInviteeCode"></span></p>
+                                        <p class="font-weight-bold mb-0">Status: <span id="scannedInviteeResult"></span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
             <?php 
                 } else { ?>
                     <!-- If fetched error, then the error message appear. -->
@@ -376,7 +471,7 @@
         var statusSnackBar = document.getElementById("snackbar");
 
         // Get Barcode Reader
-        var barcodeReader = document.getElementById("qr-reader");
+        var barcodeReader = document.getElementById("scanAttendanceContent");
 
         function buttonFlagFunc(flag) {
             if (flag == 1) {
@@ -401,6 +496,28 @@
                 }
             }
         }
+
+        // Change Between Auto and Manual for generating certificate
+        $("input[name='generateCert']").click(function() {
+            if ($("#generateCertManual").is(":checked")) {
+                $("input[name='sendCert']").prop({
+                    'checked': false,
+                    'disabled': true
+                });
+                $("#sendCertLabel").html("No");
+            } else {
+                $("input[name='sendCert']").prop('disabled', false);
+            }
+        });
+
+        // Change Send Certificate Label
+        $("input[name='sendCert']").click(function() {
+            if ($(this).is(":checked")) {
+                $("#sendCertLabel").html("Yes");
+            } else {
+                $("#sendCertLabel").html("No");
+            }
+        });
 
         // Option Config Input Validation
         function optionConfigInputValidation(){

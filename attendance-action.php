@@ -21,4 +21,9 @@
 	    $member = new AttendanceMember();
 	    $addResponse = $member->sendCertificate($currentEventID, $_POST['inviteeCode']);
 	}
+	if(!empty($_POST['attendanceAction']) && $_POST['attendanceAction'] == 'sendSelectedCertificate') {
+	    require_once './model/attendance-member.php';
+	    $member = new AttendanceMember();
+	    $addResponse = $member->sendSelectedCertificate($currentEventID);
+	}
 ?>

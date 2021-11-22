@@ -17,33 +17,78 @@
     $attendanceRecords = 0;
     $generatedCertificateRecords = 0;
 
-    // Get the number of event records
-    $eventSQL = $conn->query("SELECT COUNT(*) as 'num_row' FROM `events` WHERE `admin_ID` = $id AND `status` = 1");
-    while($row = $eventSQL->fetch_assoc())
-    {
-        $eventRecords = $row['num_row'];
-    }
+    // Initialize Array Data
+    $eventTitles = array();
+    $eventNumInvitees = array();
+    $eventBarColors = array();
+    $inviteeNumByType = array(0, 0, 0);
+    $attendancePresent = array();
+    $attendanceAbsent = array();
+    $certificateNumStatus = array(0, 0);
 
-    // Get the number of each records
-    $eventSQLRow = $conn->query("SELECT * FROM `events` WHERE `admin_ID` = $id");
-    while($row = $eventSQLRow->fetch_assoc())
-    {
-    	$eventIDS = $row['ID'];
-    	// Get the number of invitee records
-    	$inviteSQL = $conn->query("SELECT COUNT(*) as 'num_row' FROM `invitees` WHERE `event_ID` = $eventIDS AND `status` = 1");
-        while($row2 = $inviteSQL->fetch_assoc()){
-        	$inviteeRecords += $row2['num_row'];
+    // Get the number of event records
+    $eventStmt = $conn->prepare("SELECT `events`.`ID`, `events`.`event_title`, (SELECT COUNT(*) FROM `invitees` WHERE `invitees`.`event_ID` = `events`.`ID` AND `invitees`.`status` = 1) AS `num_invitees` FROM `events` WHERE `events`.`admin_ID` = ?");
+    $eventStmt->bind_param('i', $id);
+    $eventStmt->execute();
+    $eventResult =  $eventStmt->get_result();
+    $eventStmt->close();
+    $eventRecords = mysqli_num_rows($eventResult);
+    while($row = $eventResult->fetch_assoc()) {
+        // Save it into event arrays
+        $eventTitles[] = $row['event_title'];
+        $eventNumInvitees[] = $row['num_invitees'];
+        $randomColor = "#".dechex(rand(0x000000, 0xFFFFFF));
+        while (in_array($randomColor, $eventBarColors)) {
+            $randomColor = "#".dechex(rand(0x000000, 0xFFFFFF));
         }
-        // Get the nummber of attendance records
-        $attendanceSQL = $conn->query("SELECT COUNT(*) as 'num_row' FROM `attendance` WHERE `event_ID` = $eventIDS");
-        while($row3 = $attendanceSQL->fetch_assoc()){
-        	$attendanceRecords += $row3['num_row'];
+        $eventBarColors[] = $randomColor;
+
+        // Iterate Event ID
+        $iterateEventID = $row['ID'];
+
+        // Get the number of invitee records
+        $inviteeStmt = $conn->prepare("SELECT `invitees`.`type`, IF(`attendance`.`status` IS NULL, 'Absent', 'Present') as `attendance_status` FROM `invitees` LEFT JOIN `attendance` ON `invitees`.`invitee_code` = `attendance`.`invitee_code` WHERE `invitees`.`event_ID` = ? AND `invitees`.`status` = 1");
+        $inviteeStmt->bind_param("i", $iterateEventID);
+        $inviteeStmt->execute();
+        $inviteeResult = $inviteeStmt->get_result();
+        $inviteeStmt->close();
+        $inviteeRecords += mysqli_num_rows($inviteeResult);
+        $tempPresent = 0;
+        $tempAbsent = 0;
+        while ($ivtRow = $inviteeResult->fetch_assoc()) {
+            if ($ivtRow['type'] == "Student") {
+                $inviteeNumByType[0]++;
+            } else if ($ivtRow['type'] == "Guest") {
+                $inviteeNumByType[1]++;
+            } else if ($ivtRow['type'] == "Employee") {
+                $inviteeNumByType[2]++;
+            }
+            if ($ivtRow['attendance_status'] == 'Present') {
+                $tempPresent++;
+                $attendanceRecords++;
+            } else {
+                $tempAbsent++;
+            }
         }
-        // Get the number of generated certificate records
-        $certificateSQL = $conn->query("SELECT COUNT(*) as 'num_row' FROM `certificate` WHERE `event_ID` = $eventIDS");
-        while($row4 = $certificateSQL->fetch_assoc()){
-        	$generatedCertificateRecords += $row4['num_row'];
+
+        // Get the number of certificate records
+        $certificateStmt = $conn->prepare("SELECT (ROW_NUMBER() OVER(ORDER BY `certificate`.`datetime_generated` ASC)) AS `row_num`, IF(`certificate`.`datetime_generated` IS NULL, 'Not Yet Generated', 'Generated') AS `generation_status` FROM `invitees` LEFT JOIN `certificate` ON `certificate`.`invitee_code` = `invitees`.`invitee_code` WHERE `invitees`.`event_ID` = ? AND (SELECT COUNT(*) FROM `attendance` WHERE `attendance`.`invitee_code` = `invitees`.`invitee_code`) = 1");
+        $certificateStmt->bind_param("i", $iterateEventID);
+        $certificateStmt->execute();
+        $certificateResult = $certificateStmt->get_result();
+        $certificateStmt->close();
+        while ($certRow = $certificateResult->fetch_assoc()) {
+            if ($certRow['generation_status'] == "Generated") {
+                $generatedCertificateRecords++;
+                $certificateNumStatus[0]++;
+            } else {
+                $certificateNumStatus[1]++;
+            }
         }
+
+        // Save into attendance statuses arrays
+        $attendancePresent[] = $tempPresent;
+        $attendanceAbsent[] = $tempAbsent;
     }
     
 ?>
@@ -56,6 +101,8 @@
         include 'style/style.php';
         // the include or require statement takes all the text/code/markup that exists in the specified file	
     ?>
+
+    <script src="./scripts/chart.js"></script>
 </head>
 <body class="d-flex flex-column">
 	<?php 
@@ -83,7 +130,8 @@
                 } ?> <?php echo $username;?>!</h1>
                 <h2 class="pl-3 font-weight-normal">Your home dashboard.</h2>
             </div>
-            <div class="container shadow-sm p-3 my-2 mt-4 border-form-override">
+            <!-- Numbers -->
+            <div class="container shadow-sm p-3 my-3 border-form-override">
             	<!-- Statistics -->
             	<div class="row mt-0">
             		<!-- Total Events -->
@@ -102,7 +150,7 @@
 		            				</div>
             					</div>	
             				</div>
-            				<a href="events.php" class="text-light">More info <i class="fas fa-arrow-circle-right"></i></a>
+            				<a href="javascript:void(0)" class="text-light" id="eventChart">More info <i class="fas fa-arrow-circle-right"></i></a>
 			            </div>
             		</div>
             		<!-- Total Invitees Served -->
@@ -121,7 +169,7 @@
 		            				</div>
             					</div>	
             				</div>
-            				<a href="events.php" class="text-light">More info <i class="fas fa-arrow-circle-right"></i></a>
+            				<a href="javascript:void(0)" class="text-light" id="inviteesChart">More info <i class="fas fa-arrow-circle-right"></i></a>
 			            </div>
             		</div>
             		<!-- Total Attendances Checked -->
@@ -140,7 +188,7 @@
 		            				</div>
             					</div>	
             				</div>
-            				<a href="events.php" class="text-light">More info <i class="fas fa-arrow-circle-right"></i></a>
+            				<a href="javascript:void(0)" class="text-light" id="attendanceChart">More info <i class="fas fa-arrow-circle-right"></i></a>
 			            </div>
             		</div>
             		<!-- Total Certificates Generated -->
@@ -159,10 +207,44 @@
 		            				</div>
             					</div>	
             				</div>
-            				<a href="events.php" class="text-light">More info <i class="fas fa-arrow-circle-right"></i></a>
+            				<a href="javascript:void(0)" class="text-light" id="certificateChart">More info <i class="fas fa-arrow-circle-right"></i></a>
 			            </div>
             		</div>
             	</div>
+            </div>
+            <div class="row mb-5">
+                <div class="col-md-6" id="eventParentContainer" style="display: none;">
+                    <!-- Event Chart -->
+                    <div class="container shadow-sm p-3 my-4 border-form-override" style="height: 95%">
+                        <div class="chart-container mx-auto" style="position: relative; max-width: 500px; min-height: 450px;">
+                            <canvas id="eventChartCanvas"></canvas>
+                        </div>
+                    </div>  
+                </div>
+                <div class="col-md-6" id="inviteeParentContainer" style="display: none;">
+                    <!-- Invitee Chart -->
+                    <div class="container shadow-sm p-3 my-4 border-form-override" style="height: 95%">
+                        <div class="chart-container mx-auto" style="position: relative; max-width: 500px;">
+                            <canvas id="inviteeChartCanvas"></canvas>
+                        </div>                
+                    </div>  
+                </div>
+                <div class="col-md-6" id="attendanceParentContainer" style="display: none;">
+                    <!-- Attendance Chart -->
+                    <div class="container shadow-sm p-3 my-4 border-form-override" style="height: 95%">
+                        <div class="chart-container mx-auto" style="position: relative; max-width: 500px; min-height: 450px;">
+                            <canvas id="attendanceChartCanvas"></canvas>
+                        </div>                
+                    </div>  
+                </div>
+                <div class="col-md-6" id="certificateParentContainer" style="display: none;">
+                    <!-- Certificate Chart -->
+                    <div class="container shadow-sm p-3 my-4 border-form-override" style="height: 95%">
+                        <div class="chart-container mx-auto" style="position: relative; max-width: 500px;">
+                            <canvas id="certificateChartCanvas"></canvas>
+                        </div>                
+                    </div>  
+                </div>
             </div>
     	</div>
     </div>
@@ -170,5 +252,277 @@
         include 'model/footer.php';
         // the include or require statement takes all the text/code/markup that exists in the specified file    
     ?>
+
+    <!-- Chart Scripts -->
+    <script>
+        // Initialize Charts
+        var eventChart;
+        var inviteeChart;
+        var attendanceChart;
+        var certificateChart;
+
+        // Default Chart Js Global Config
+        Chart.defaults.color = "#000";
+
+        // Initialize Chart Flags
+        var eventFlag = true;
+        var inviteeFlag = true;
+        var attendanceFlag = true;
+        var certificateFlag = true;
+
+        // Global Font Styles
+        const titleFontStyle = {family:'sans-serif', size: 18};
+        const labelFontStyle = {family:'sans-serif', size: 16};
+        const eventTitleFontStyle = {family:'sans-serif', size: 14};
+
+        // Event Chart Click
+        $("#eventChart").click(function() {
+            if (eventFlag == true) {
+                var totalEvent = <?php echo $eventRecords;?>;
+                var xValues = <?php echo json_encode($eventTitles);?>;
+                var yValues = <?php echo json_encode($eventNumInvitees);?>;
+                var barColors = <?php echo json_encode($eventBarColors);?>;
+                var total = yValues.reduce((accumulator, currentValue) => accumulator + currentValue);
+                var percentageLabels = yValues.map(function(currentValue, index) {
+                    return xValues[index] + " ("+ ((currentValue / total) * 100).toFixed(2) + "%)";
+                });
+
+                eventChart = new Chart("eventChartCanvas", {
+                    type: "bar",
+                    data: {
+                        labels: percentageLabels,
+                        datasets: [{
+                            backgroundColor: barColors,
+                            data: yValues
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'No. of invitees',
+                                    font: labelFontStyle
+                                },
+                                ticks: {
+                                    stepSize: 1,
+                                    font: labelFontStyle
+                                },
+                            },
+                            x: {
+                                display: true,
+                                ticks: {
+                                    maxRotation: 90,
+                                    minRotation: 90,
+                                    font: eventTitleFontStyle,
+                                    callback: function(value, index, values) {
+                                        return xValues[index];
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Events Summary',
+                                font: titleFontStyle
+                            },
+                            subtitle: {
+                                display: true,
+                                text: 'Total Events: ' + totalEvent,
+                                font: labelFontStyle
+                            },
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                eventFlag = false;
+            } else {
+                eventChart.destroy();
+                eventFlag = true;
+            }
+            $("#eventParentContainer").fadeToggle();
+        });
+
+        // Invitee Chart Click
+        $("#inviteesChart").click(function() {
+            if (inviteeFlag == true) {
+                var xValues = ["Student", "Guest", "Employee"];
+                var yValues = <?php echo json_encode($inviteeNumByType);?>;
+                var barColors = ["#ff0000", "#00ff00", "#0000ff"];
+                var total = yValues.reduce((accumulator, currentValue) => accumulator + currentValue);
+                var percentageLabels = yValues.map(function(currentValue, index) {
+                    return xValues[index] + " ("+ ((currentValue / total) * 100).toFixed(2) + "%)";
+                });
+
+                inviteeChart = new Chart("inviteeChartCanvas", {
+                    type: "doughnut",
+                    data: {
+                        labels: percentageLabels,
+                        datasets: [{
+                            backgroundColor: barColors,
+                            data: yValues
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Invitees Summary',
+                                font: titleFontStyle
+                            },
+                            legend: {
+                                labels: {
+                                    font: labelFontStyle
+                                }
+                            }
+                        }
+                    }
+                });
+                inviteeFlag = false;
+            } else {
+                inviteeChart.destroy();
+                inviteeFlag = true;
+            }
+            $("#inviteeParentContainer").fadeToggle();
+        });
+
+        // Attendance Chart Click
+        $("#attendanceChart").click(function() {
+            if (attendanceFlag == true) {
+                var totalAttendance = <?php echo $attendanceRecords;?>;
+                var xValues = <?php echo json_encode($eventTitles);?>;
+                var yValuesPresent = <?php echo json_encode($attendancePresent);?>;
+                var yValuesAbsent = <?php echo json_encode($attendanceAbsent);?>;
+                // var yValuesPresentPercentage = new Array();
+                // for (var i = 0; i < yValuesPresent.length; i++) {
+                //     var tempArray = {percentage:i, present:yValuesPresent[i]};
+                //     yValuesPresentPercentage.push(tempArray);
+                // }
+                // console.log(yValuesPresentPercentage);
+
+                attendanceChart = new Chart("attendanceChartCanvas", {
+                    type: "bar",
+                    data: {
+                        labels: xValues,
+                        datasets: [
+                            {
+                                label: 'Present',
+                                backgroundColor: "#0000ff",
+                                data: yValuesPresent
+                            },
+                            {
+                                label: 'Absent',
+                                backgroundColor: "#ff0000",
+                                data: yValuesAbsent
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: 'Attendance Status No.',
+                                    font: labelFontStyle
+                                },
+                                ticks: {
+                                    stepSize: 1,
+                                    font: labelFontStyle
+                                }
+                            },
+                            x: {
+                                display: true,
+                                ticks: {
+                                    maxRotation: 90,
+                                    minRotation: 90,
+                                    font: eventTitleFontStyle
+                                }
+                            }
+                        },
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Attendance Summary',
+                                font: titleFontStyle
+                            },
+                            subtitle: {
+                                display: true,
+                                text: 'Total Attendance: ' + totalAttendance,
+                                font: labelFontStyle
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    footer: function(tooltipItems) {
+                                        var numInvitees = <?php echo json_encode($eventNumInvitees);?>;
+                                        var dataIndex = tooltipItems[0].dataIndex;
+                                        var datasetIndex = tooltipItems[0].datasetIndex;
+                                        var percentageTemp = ((tooltipItems[0].raw / numInvitees[dataIndex]) * 100).toFixed(2);
+                                        return 'Percentage: ' + percentageTemp + "%";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                attendanceFlag = false;
+            } else {
+                attendanceChart.destroy();
+                attendanceFlag = true;
+            }
+            $("#attendanceParentContainer").fadeToggle(); 
+        });
+
+        // Certificate Chart Click
+        $("#certificateChart").click(function() {
+            if (certificateFlag == true) {
+                var xValues = ["Generated", "Not Yet Generated"];
+                var yValues = <?php echo json_encode($certificateNumStatus);?>;
+                var barColors = ["#0000ff", "#ff0000"];
+                var total = yValues.reduce((accumulator, currentValue) => accumulator + currentValue);
+                var percentageLabels = yValues.map(function(currentValue, index) {
+                    return xValues[index] + " ("+ ((currentValue / total) * 100).toFixed(2) + "%)";
+                });
+
+                certificateChart = new Chart("certificateChartCanvas", {
+                    type: "pie",
+                    data: {
+                        labels: percentageLabels,
+                        datasets: [{
+                            backgroundColor: barColors,
+                            data: yValues
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Certificates Summary',
+                                font: titleFontStyle
+                            },
+                            legend: {
+                                labels: {
+                                    font: labelFontStyle
+                                }
+                            }
+                        }
+                    }
+                });
+                certificateFlag = false;
+            } else {
+                certificateChart.destroy();
+                certificateFlag = true;
+            }
+            $("#certificateParentContainer").fadeToggle(); 
+        });
+    </script>
 </body>
 </html>

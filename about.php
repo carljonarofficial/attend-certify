@@ -1,6 +1,20 @@
 <?php
-	// Validate if the admin logged in
-    include 'validateLogin.php';
+	// Check if is already logged in
+	$adminAccountName = "";
+	$loggedIn = false;
+	session_start();
+    if (isset($_SESSION["username"])) {
+    	$username = $_SESSION["username"];
+    	$loggedIn = true;
+
+        // Check if Full Name Session Exists
+        if (isset($_SESSION["fullName"])) {
+            $adminAccountName = $_SESSION["fullName"];
+        } else {
+            $adminAccountName = $username;
+        }
+    } 
+    session_write_close();
 ?>
 <!DOCTYPE html>
 <html>
@@ -79,7 +93,7 @@
             		<!-- Member 1 -->
             		<div class="col">
             			<div class="card profle-card">
-            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
+            				<img class="card-img-top w-100 h-100" src="img/profile/baludda.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
 	                		<div class="card-body" style="min-height: 263px;">
 	                			<div class="card-title">
 	                				<h4 class="font-weight-bold">STEVEN D. <br>BALUDDA</h4>
@@ -101,7 +115,7 @@
             		<!-- Member 2 -->
             		<div class="col">
             			<div class="card profle-card">
-            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
+            				<img class="card-img-top w-100 h-100" src="img/profile/ponce.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
 	                		<div class="card-body" style="min-height: 263px;">
 	                			<div class="card-title">
 	                				<h4 class="font-weight-bold">JOHN OLIVER D. <br>PONCE</h4>
@@ -120,7 +134,7 @@
             		<!-- Adviser -->
             		<div class="col">
             			<div class="card profle-card">
-            				<img class="card-img-top w-100 h-100" src="img/man.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
+            				<img class="card-img-top w-100 h-100" src="img/profile/buen.png" alt="Card image cap" height="200" width="200" onContextMenu="return false;"  ondragstart="return false;">
 	                		<div class="card-body" style="min-height: 263px;">
 	                			<div class="card-title">
 	                				<h4 class="font-weight-bold">DARYL V. <br>BUEN</h4>
@@ -155,6 +169,17 @@
             		<li><h6><a class="text-dark" href="https://jquery.com/">jQuery under MIT License - jquery.com</a></h6></li>
             		<li><h6>All brand icons are trademarks of their respective owners.</h6></li>
             	</ul>
+            </div>
+            <!-- Privacy Policy and Terms and Conditions Buttons -->
+            <div class="container shadow-sm p-3 my-2 mt-4 mb-4 border-form-override">
+            	<div class="row">
+            		<div class="col-12 col-sm-6 text-center py-2">
+            			<a href="privacy-policy" class="btn btn-primary btn-block" style="font-size: 1.5rem;"><i class="fas fa-user-shield"></i> Privacy Policy</a>	
+            		</div>
+            		<div class="col-12 col-sm-6 text-center py-2">
+            			<a href="terms-conditions" class="btn btn-success btn-block" style="font-size: 1.5rem;"><i class="fas fa-file-alt"></i> Terms and Conditions</a>	
+            		</div>
+            	</div>
             </div>
     	</div>
     </div>

@@ -40,4 +40,14 @@
 	    $member = new CertificateMember();
 	    $addResponse = $member->sendSelectedCertificate($_POST['currentEventID']);
 	}
+	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'getUserCertificate') {
+	    require_once './model/certificate-member.php';
+	    $member = new CertificateMember();
+	    $addResponse = $member->getUserCert($_POST['inviteeCode']);
+	}
+	if(!empty($_POST['certificateAction']) && $_POST['certificateAction'] == 'getSearchCertsList') {
+		require_once './model/certificate-member.php';
+	    $member = new CertificateMember();
+	    $addResponse = $member->getSearchCertsList($_POST["searchEmail"]);
+	}
 ?>

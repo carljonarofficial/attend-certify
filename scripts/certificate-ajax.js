@@ -270,6 +270,7 @@ $(document).ready(function() {
             })
             .done(function(data) {
                 $("#loadingModal").modal('hide');
+                $("#selectAllInvitees").prop('checked',false);
                 $("#selectAllInvitees").closest('table').find('td input:checkbox').prop('checked', false);
                 certificateData.rows().deselect();
                 $('#sendSelectedCertificates').hide();
@@ -496,7 +497,7 @@ $(document).ready(function() {
         // statusSnackBar.innerHTML = '';
     }
 
-	// Display Scanned Invitte Name Result
+	// Display Scanned Invitee Name Result
     function displyScannedResult(name, code, bg_color, status) {
         $("#scannedCertificateName").html(name);
         $("#scannedCertificateCode").html(code);

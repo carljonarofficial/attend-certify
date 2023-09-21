@@ -144,6 +144,7 @@
 	            $_SESSION["ID"] = $memberRecord[0]["ID"];
 	            $_SESSION["username"] = $memberRecord[0]["username"];
 	            $_SESSION["email"] = $memberRecord[0]["email"];
+				$_SESSION['loginType'] = $_POST["login-type"];
 	            // Set Remember Me Cookie If checked
 	            if ($_POST["rememberMe"]) {
 	            	setcookie ("username",$memberRecord[0]["username"],time()+ 86400);
@@ -153,7 +154,11 @@
 					setcookie("password","");
 	            }
 	            session_write_close();
-	            $url = "./home.php";
+				if ($_POST["login-type"] == "admin") {
+					$url = "./home.php";
+				} else {
+					$url = "./certificates?user";
+				}
 	            header("Location: $url");
 	        } else if ($loginPassword == 0) {
 	            $loginStatus = "Invalid username or password.";

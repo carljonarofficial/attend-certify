@@ -134,13 +134,13 @@
 	                      <table style="font-family:'Open Sans',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
 	                        <tbody>
 	                          <tr>
-	                            <td style="overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:'Open Sans',sans-serif;" align="left">
+	                            <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:18px 10px 10px;font-family:'Open Sans',sans-serif;" align="left">
 
 	                              <table width="100%" cellpadding="0" cellspacing="0" border="0">
 	                                <tr>
 	                                  <td style="padding-right: 0px;padding-left: 0px;" align="center">
 
-	                                    <img align="center" border="0" src="https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1627753862600-627056.png" alt="Image" title="Image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 100%;max-width: 280px;"
+	                                    <img align="center" border="0" src="https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1642571122377-Main+Banner.png" alt="Image" title="Image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 100%;max-width: 280px;"
 	                                      width="280" />
 
 	                                  </td>
@@ -357,13 +357,16 @@
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">Attached this is your invitation barcode with the code: <strong>{$inviteeCode}</strong>. You can save it or event print at your own preference. <strong><span style="color: #e03e2d; font-size: 14px; line-height: 19.6px;">Please do not share your code or barcode</span></strong>.</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
+									<p style="font-size: 14px; line-height: 140%; text-align: justify;">You can get your certificate after this event has been concluded with the link below:</p>
+									<p style="font-size: 14px; line-height: 140%; text-align: justify;"><a rel="noopener" href="https://attend-certify.com/certificates?user&code={$inviteeCode}" target="_blank">https://attend-certify.com/certificates?user&amp;code={$inviteeCode}</a></p>
+									<p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">You can contact for more information thru my email <a href="mailto:{$adminEmail}?subject=&body=" target="_blank" rel="noopener">{$adminEmail}</a>.</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">We look forward to your presence on the event <strong>{$eventTitle}</strong>.</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">Your sincerely,</p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
-	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;"><strong>{$username}</strong></p>
+	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;"><strong>{$adminAccountName}</strong></p>
 	                                <p style="font-size: 14px; line-height: 140%; text-align: justify;">Organizer</p>
 	                              </div>
 

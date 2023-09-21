@@ -192,16 +192,16 @@
 			    // Server settings
 			    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
 			    $mail->isSMTP();
-			    $mail->Host = 'smtp.gmail.com';
+			    $mail->Host = 'smtp.hostinger.com';
 			    $mail->SMTPAuth = true;
 			    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 			    $mail->Port = 587;
 
-			    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
-			    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+			    $mail->Username = 'accounts-support@attend-certify.com';
+			    $mail->Password = 'VLDHpmnE_c2ZhLA';
 
-			    // Sender and recipient settings
-			    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+			    // Sender settings
+			    $mail->setFrom('accounts-support@attend-certify.com', 'Attend and Certify Account Support');
 			    $mail->addAddress($email, $username);
 
 			    // Setting the email content

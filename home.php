@@ -19,6 +19,7 @@
 
     // Initialize Array Data
     $eventTitles = array();
+    $eventSchedules = array();
     $eventNumInvitees = array();
     $eventBarColors = array();
     $inviteeNumByType = array(0, 0, 0);
@@ -27,7 +28,7 @@
     $certificateNumStatus = array(0, 0);
 
     // Get the number of event records
-    $eventStmt = $conn->prepare("SELECT `events`.`ID`, `events`.`event_title`, (SELECT COUNT(*) FROM `invitees` WHERE `invitees`.`event_ID` = `events`.`ID` AND `invitees`.`status` = 1) AS `num_invitees` FROM `events` WHERE `events`.`admin_ID` = ?");
+    $eventStmt = $conn->prepare("SELECT `ID`, `event_title`, `date`, `date_end`, `time_inclusive`, `time_conclusive`, (SELECT COUNT(*) FROM `invitees` WHERE `invitees`.`event_ID` = `events`.`ID` AND `invitees`.`status` = 1) AS `num_invitees` FROM `events` WHERE `events`.`admin_ID` = ?");
     $eventStmt->bind_param('i', $id);
     $eventStmt->execute();
     $eventResult =  $eventStmt->get_result();
@@ -42,6 +43,15 @@
             $randomColor = "#".dechex(rand(0x000000, 0xFFFFFF));
         }
         $eventBarColors[] = $randomColor;
+        $iStart = new DateTime($row['date']);
+        $iEnd = new DateTime($row['date_end']);
+        for ($i = $iStart; $i <= $iEnd; $i->modify("+1 day")) {
+            $eventSchedules[] = array(
+                "title" => $row['event_title'],
+                "start" => $i->format("Y-m-d")."T".$row['time_inclusive'],
+                "end" => $i->format("Y-m-d")."T".$row['time_conclusive']
+            );
+        }
 
         // Iterate Event ID
         $iterateEventID = $row['ID'];
@@ -101,8 +111,20 @@
         include 'style/style.php';
         // the include or require statement takes all the text/code/markup that exists in the specified file	
     ?>
-
+    <!-- Custom Stat Boxes Styles -->
+    <link rel="stylesheet" href="style/custom-stat-box.css">
+    <!-- FullCalendar -->
+    <link rel="stylesheet" href="style/fullcalendar/main.css">
+    <script src="scripts/fullcalendar/main.js"></script>
+    <!-- Chart.js -->
     <script src="./scripts/chart.js"></script>
+    <style type="text/css">
+        .fc-toolbar-chunk {
+            white-space: pre;
+            margin-left: 3px;
+            margin-right: 3px;
+        }
+    </style>
 </head>
 <body class="d-flex flex-column">
 	<?php 
@@ -127,89 +149,69 @@
                 	echo "evening";
                 } else {
                 	echo "night";
-                } ?> <?php echo $username;?>!</h1>
+                } ?> <?php echo $adminAccountName;?>!</h1>
                 <h2 class="pl-3 font-weight-normal">Your home dashboard.</h2>
             </div>
             <!-- Numbers -->
-            <div class="container shadow-sm p-3 my-3 border-form-override">
+            <div class="container-fluid shadow-sm p-3 my-3 border-form-override">
             	<!-- Statistics -->
             	<div class="row mt-0">
             		<!-- Total Events -->
-            		<div class="col mb-3">
-            			<div class="p-3 bg-info rounded">
-            				<div class="row mb-1">
-            					<div class="col">
-            					  	<div class="float-left">
-	                					<h1 class="display-5 text-light font-weight-bold"><?php echo $eventRecords;?></h1>
-	                					<h6 class="text-light">Events Created</h6>
-	            					</div>
-            					</div>
-            					<div class="col">
-            					  	<div class="float-right">
-		            					<img alt="Events" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAyNS4xLjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDEyNC44IDEyNC44IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCAxMjQuOCAxMjQuODsiIHhtbDpzcGFjZT0icHJlc2VydmUiPg0KPHN0eWxlIHR5cGU9InRleHQvY3NzIj4NCgkuc3Qwe2ZpbGw6I0ZGRkZGRjt9DQo8L3N0eWxlPg0KPGc+DQoJPGc+DQoJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik00OC4xLDgwLjRsLTEuOSwxMS40Yy0wLjMsMS42LDAuNCwzLjEsMS43LDQuMWMxLjMsMC45LDMsMS4xLDQuNCwwLjNsMTAuMi01LjNsMTAuMiw1LjMNCgkJCWMwLjYsMC4zLDEuMywwLjUsMS45LDAuNWMwLjksMCwxLjctMC4zLDIuNC0wLjhjMS4zLTAuOSwxLjktMi41LDEuNy00LjFsLTEuOS0xMS40bDguMi04LjFjMS4xLTEuMSwxLjUtMi43LDEtNC4yDQoJCQlzLTEuOC0yLjYtMy4zLTIuOGwtMTEuNC0xLjdsLTUuMS0xMC4zYy0wLjctMS40LTIuMS0yLjMtMy43LTIuM2MtMS42LDAtMywwLjktMy43LDIuM2wtNS4xLDEwLjNsLTExLjQsMS43DQoJCQljLTEuNiwwLjItMi45LDEuMy0zLjMsMi44Yy0wLjUsMS41LTAuMSwzLjEsMSw0LjJMNDguMSw4MC40eiIvPg0KCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTExLjQsMTMuM2gtMTNWNmMwLTMuMy0yLjctNi02LTZoLTFjLTMuMywwLTYsMi43LTYsNnY3LjJIMzkuM1Y2YzAtMy4zLTIuNy02LTYtNmgtMWMtMy4zLDAtNiwyLjctNiw2djcuMg0KCQkJSDEzLjRDNi41LDEzLjMsMSwxOC44LDEsMjUuN3Y4Ni44YzAsNi44LDUuNiwxMi40LDEyLjQsMTIuNGg5OC4xYzYuOCwwLDEyLjQtNS42LDEyLjQtMTIuNFYyNS43DQoJCQlDMTIzLjgsMTguOCwxMTguMywxMy4zLDExMS40LDEzLjN6IE0xMDkuOCwxMTAuOEgxNVY0My4zaDk0LjhWMTEwLjh6Ii8+DQoJPC9nPg0KPC9nPg0KPC9zdmc+DQo=" width="100" height="100"/>
-		            				</div>
-            					</div>	
-            				</div>
-            				<a href="javascript:void(0)" class="text-light" id="eventChart">More info <i class="fas fa-arrow-circle-right"></i></a>
-			            </div>
-            		</div>
+                    <div class="col-lg-3 col-sm-6 my-1">
+                        <!-- Small Box -->
+                        <div class="small-box small-box-events my-auto">
+                            <div class="inner-part">
+                                <h3><?php echo $eventRecords;?></h3>
+                                <p>Events <br>Created</p>
+                            </div>
+                            <div class="icon">
+                                <img src="./img/assets/stat-boxes-icons/events.svg" width="70" onContextMenu="return false;" ondragstart="return false;">
+                            </div>
+                            <a href="javascript:void(0)" class="small-box-footer" id="eventChart">More info <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
             		<!-- Total Invitees Served -->
-            		<div class="col mb-3">
-            			<div class="p-3 bg-success rounded">
-            				<div class="row mb-1">
-            					<div class="col">
-            					  	<div class="float-left">
-	                					<h1 class="display-5 text-light font-weight-bold"><?php echo $inviteeRecords;?></h1>
-	                					<h6 class="text-light">Invitees Served</h6>
-	            					</div>
-            					</div>
-            					<div class="col">
-            					  	<div class="float-right">
-		            					<img alt="Invitees" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAyNS4xLjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDgwLjEgODAuMSIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgODAuMSA4MC4xOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+DQo8c3R5bGUgdHlwZT0idGV4dC9jc3MiPg0KCS5zdDB7ZmlsbDojRkZGRkZGO30NCjwvc3R5bGU+DQo8Zz4NCgk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNNDguNCwxNy45YzMuNywyLjMsNi4zLDYuMyw2LjgsMTAuOGMxLjUsMC43LDMuMiwxLjEsNSwxLjFjNi41LDAsMTEuOC01LjMsMTEuOC0xMS44DQoJCWMwLTYuNS01LjMtMTEuOC0xMS44LTExLjhDNTMuNyw2LjMsNDguNSwxMS41LDQ4LjQsMTcuOXogTTQwLjcsNDJjNi41LDAsMTEuOC01LjMsMTEuOC0xMS44cy01LjMtMTEuOC0xMS44LTExLjgNCgkJcy0xMS44LDUuMy0xMS44LDExLjhTMzQuMiw0Miw0MC43LDQyeiBNNDUuNiw0Mi44aC0xMGMtOC4zLDAtMTUsNi44LTE1LDE1VjcwbDAsMC4ybDAuOCwwLjNjNy45LDIuNSwxNC44LDMuMywyMC41LDMuMw0KCQljMTEuMSwwLDE3LjUtMy4yLDE3LjktMy40bDAuOC0wLjRoMC4xVjU3LjhDNjAuNyw0OS41LDUzLjksNDIuOCw0NS42LDQyLjh6IE02NS4xLDMwLjdoLTkuOWMtMC4xLDQtMS44LDcuNS00LjUsMTAuMQ0KCQljNy40LDIuMiwxMi44LDksMTIuOCwxNy4xdjMuOGM5LjgtMC40LDE1LjQtMy4xLDE1LjgtMy4zbDAuOC0wLjRoMC4xVjQ1LjdDODAuMSwzNy40LDczLjQsMzAuNyw2NS4xLDMwLjd6IE0yMCwyOS45DQoJCWMyLjMsMCw0LjQtMC43LDYuMi0xLjhjMC42LTMuOCwyLjYtNyw1LjUtOS4zYzAtMC4yLDAtMC40LDAtMC43YzAtNi41LTUuMy0xMS44LTExLjgtMTEuOGMtNi41LDAtMTEuOCw1LjMtMTEuOCwxMS44DQoJCUM4LjMsMjQuNiwxMy41LDI5LjksMjAsMjkuOXogTTMwLjYsNDAuN2MtMi43LTIuNi00LjMtNi4xLTQuNS0xMGMtMC40LDAtMC43LTAuMS0xLjEtMC4xSDE1Yy04LjMsMC0xNSw2LjctMTUsMTV2MTIuMmwwLDAuMg0KCQlsMC44LDAuM2M2LjQsMiwxMiwyLjksMTYuOSwzLjJ2LTMuN0MxNy44LDQ5LjgsMjMuMiw0Mi45LDMwLjYsNDAuN3oiLz4NCjwvZz4NCjwvc3ZnPg0K" width="100" height="100"/>
-		            				</div>
-            					</div>	
-            				</div>
-            				<a href="javascript:void(0)" class="text-light" id="inviteesChart">More info <i class="fas fa-arrow-circle-right"></i></a>
-			            </div>
-            		</div>
+                    <div class="col-lg-3 col-sm-6 my-1">
+                        <!-- Small Box -->
+                        <div class="small-box small-box-invitees my-auto">
+                            <div class="inner-part">
+                                <h3><?php echo $inviteeRecords;?></h3>
+                                <p>Invitees <br>Served</p>
+                            </div>
+                            <div class="icon">
+                                <img src="./img/assets/stat-boxes-icons/invitees.svg" width="70" onContextMenu="return false;" ondragstart="return false;">
+                            </div>
+                            <a href="javascript:void(0)" class="small-box-footer" id="inviteesChart">More info <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
             		<!-- Total Attendances Checked -->
-            		<div class="col mb-3">
-            			<div class="p-3 bg-warning rounded">
-            				<div class="row mb-1">
-            					<div class="col">
-            					  	<div class="float-left">
-	                					<h1 class="display-5 text-light font-weight-bold"><?php echo $attendanceRecords;?></h1>
-	                					<h6 class="text-light">Attendance Checked</h6>
-	            					</div>
-            					</div>
-            					<div class="col">
-            					  	<div class="float-right">
-		            					<img alt="Attendance" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAyNS4xLjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDUxMiA1MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTI7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+DQoJLnN0MHtmaWxsOiNGRkZGRkY7fQ0KPC9zdHlsZT4NCjxnPg0KCTxnPg0KCQk8Zz4NCgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yNTUsMzQ4Yy0xMSwwLTIwLDktMjAsMjB2ODVjMCwxMSw5LDIwLDIwLDIwYzExLDAsMjAtOSwyMC0yMHYtODVDMjc1LDM1NywyNjYsMzQ4LDI1NSwzNDh6Ii8+DQoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjAsMTIwYzExLDAsMjAtOSwyMC0yMFY0MGg2MGMxMSwwLDIwLTksMjAtMjBzLTktMjAtMjAtMjBIMjBDOSwwLDAsOSwwLDIwdjgwQzAsMTExLDksMTIwLDIwLDEyMHoiLz4NCgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMDEsMzQ4Yy0xMSwwLTIwLDktMjAsMjB2MzVjMCwxMSw5LDIwLDIwLDIwczIwLTksMjAtMjB2LTM1QzEyMSwzNTcsMTEyLDM0OCwxMDEsMzQ4eiIvPg0KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTEwMCw0NzJINDB2LTYwYzAtMTEtOS0yMC0yMC0yMHMtMjAsOS0yMCwyMHY4MGMwLDExLDksMjAsMjAsMjBoODBjMTEsMCwyMC05LDIwLTIwUzExMSw0NzIsMTAwLDQ3MnoiLz4NCgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xNzgsMzQ4Yy0xMSwwLTIwLDktMjAsMjB2MzVjMCwxMSw5LDIwLDIwLDIwczIwLTksMjAtMjB2LTM1QzE5OCwzNTcsMTg5LDM0OCwxNzgsMzQ4eiIvPg0KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTQ5MiwwaC04MGMtMTEsMC0yMCw5LTIwLDIwczksMjAsMjAsMjBoNjB2NjBjMCwxMSw5LDIwLDIwLDIwczIwLTksMjAtMjBWMjBDNTEyLDksNTAzLDAsNDkyLDB6Ii8+DQoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMzM1LDM0OGMtMTEsMC0yMCw5LTIwLDIwdjM1YzAsMTEsOSwyMCwyMCwyMHMyMC05LDIwLTIwdi0zNUMzNTUsMzU3LDM0NiwzNDgsMzM1LDM0OHoiLz4NCgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik00OTIsMjc4aC01OFYxMDBjMC0xMS05LTIwLTIwLTIwcy0yMCw5LTIwLDIwdjE3OGgtMzlWMTAwYzAtMTEtOS0yMC0yMC0yMHMtMjAsOS0yMCwyMHYxNzhoLTQwVjEwMA0KCQkJCWMwLTExLTktMjAtMjAtMjBzLTIwLDktMjAsMjB2MTc4aC0zN1YxMDBjMC0xMS05LTIwLTIwLTIwcy0yMCw5LTIwLDIwdjE3OGgtMzdWMTAwYzAtMTEtOS0yMC0yMC0yMHMtMjAsOS0yMCwyMHYxNzhIMjANCgkJCQljLTExLDAtMjAsOS0yMCwyMHM5LDIwLDIwLDIwaDQ3MmMxMSwwLDIwLTksMjAtMjBTNTAzLDI3OCw0OTIsMjc4eiIvPg0KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTQxNCw0MjNjMTEsMCwyMC05LDIwLTIwdi0zNWMwLTExLTktMjAtMjAtMjBzLTIwLDktMjAsMjB2MzVDMzk0LDQxNCw0MDMsNDIzLDQxNCw0MjN6Ii8+DQoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNNDkyLDM5MmMtMTEsMC0yMCw5LTIwLDIwdjYwaC02MGMtMTEsMC0yMCw5LTIwLDIwczksMjAsMjAsMjBoODBjMTEsMCwyMC05LDIwLTIwdi04MA0KCQkJCUM1MTIsNDAxLDUwMywzOTIsNDkyLDM5MnoiLz4NCgkJPC9nPg0KCTwvZz4NCjwvZz4NCjwvc3ZnPg0K" width="100" height="100"/>
-		            				</div>
-            					</div>	
-            				</div>
-            				<a href="javascript:void(0)" class="text-light" id="attendanceChart">More info <i class="fas fa-arrow-circle-right"></i></a>
-			            </div>
-            		</div>
+                    <div class="col-lg-3 col-sm-6 my-1">
+                        <!-- Small Box -->
+                        <div class="small-box small-box-attendance my-auto">
+                            <div class="inner-part">
+                                <h3><?php echo $attendanceRecords;?></h3>
+                                <p>Attendance <br>Checked</p>
+                            </div>
+                            <div class="icon">
+                                <img src="./img/assets/stat-boxes-icons/attendance.svg" width="70" onContextMenu="return false;" ondragstart="return false;">
+                            </div>
+                            <a href="javascript:void(0)" class="small-box-footer" id="attendanceChart">More info <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
             		<!-- Total Certificates Generated -->
-            		<div class="col">
-            			<div class="p-3 bg-primary rounded">
-            				<div class="row mb-1">
-            					<div class="col">
-            					  	<div class="float-left">
-	                					<h1 class="display-5 text-light font-weight-bold"><?php echo $generatedCertificateRecords;?></h1>
-	                					<h6 class="text-light">Certificates Generated</h6>
-	            					</div>
-            					</div>
-            					<div class="col">
-            					  	<div class="float-right">
-		            					<img alt="" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4NCjwhLS0gR2VuZXJhdG9yOiBBZG9iZSBJbGx1c3RyYXRvciAyNS4xLjAsIFNWRyBFeHBvcnQgUGx1Zy1JbiAuIFNWRyBWZXJzaW9uOiA2LjAwIEJ1aWxkIDApICAtLT4NCjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iQ2FwYV8xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4PSIwcHgiIHk9IjBweCINCgkgdmlld0JveD0iMCAwIDUxMiA1MTIiIHN0eWxlPSJlbmFibGUtYmFja2dyb3VuZDpuZXcgMCAwIDUxMiA1MTI7IiB4bWw6c3BhY2U9InByZXNlcnZlIj4NCjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+DQoJLnN0MHtmaWxsOiNGRkZGRkY7fQ0KPC9zdHlsZT4NCjxnPg0KCTxlbGxpcHNlIGNsYXNzPSJzdDAiIGN4PSIyNTYuNSIgY3k9IjM0Ni41IiByeD0iNTAiIHJ5PSI1MCIvPg0KCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik00OTcsMEgxNUM2LjcsMCwwLDYuNywwLDE1djM2MGMwLDguMyw2LjcsMTUsMTUsMTVoMTc0LjRjLTM0LjQtNTIuOSwzLjgtMTIzLjUsNjcuMS0xMjMuNQ0KCQlTMzU4LDMzNy4xLDMyMy42LDM5MEg0OTdjOC4zLDAsMTUtNi43LDE1LTE1VjE1QzUxMiw2LjcsNTA1LjMsMCw0OTcsMHogTTE5Niw2MWgxMjBjOC4zLDAsMTUsNi43LDE1LDE1cy02LjcsMTUtMTUsMTVIMTk2DQoJCWMtOC4zLDAtMTUtNi43LTE1LTE1UzE4Ny43LDYxLDE5Niw2MXogTTQwNiwyNDFIMTA2Yy04LjMsMC0xNS02LjctMTUtMTVzNi43LTE1LDE1LTE1aDMwMGM4LjMsMCwxNSw2LjcsMTUsMTVTNDE0LjMsMjQxLDQwNiwyNDF6DQoJCSBNNDA2LDE4MUgxMDZjLTguMywwLTE1LTYuNy0xNS0xNXM2LjctMTUsMTUtMTVoMzAwYzguMywwLDE1LDYuNywxNSwxNVM0MTQuMywxODEsNDA2LDE4MXoiLz4NCgk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTk2LjcsMzk5LjZWNDk3YzAsMTEuOSwxMy4zLDE5LjEsMjMuMywxMi41bDM3LTI0LjVsMzcsMjQuNWM5LjksNi41LDIzLjMtMC41LDIzLjMtMTIuNXYtOTguNQ0KCQlDMjg1LjYsNDM1LjQsMjI5LjEsNDM2LDE5Ni43LDM5OS42TDE5Ni43LDM5OS42eiIvPg0KPC9nPg0KPC9zdmc+DQo=" width="100" height="100"/>
-		            				</div>
-            					</div>	
-            				</div>
-            				<a href="javascript:void(0)" class="text-light" id="certificateChart">More info <i class="fas fa-arrow-circle-right"></i></a>
-			            </div>
-            		</div>
+                    <div class="col-lg-3 col-sm-6 my-1">
+                        <!-- Small Box -->
+                        <div class="small-box small-box-certificate my-auto">
+                            <div class="inner-part">
+                                <h3><?php echo $generatedCertificateRecords;?></h3>
+                                <p>Certificates <br>Generated</p>
+                            </div>
+                            <div class="icon">
+                                <img src="./img/assets/stat-boxes-icons/certificate.svg" width="70" onContextMenu="return false;" ondragstart="return false;">
+                            </div>
+                            <a href="javascript:void(0)" class="small-box-footer" id="certificateChart">More info <i class="fas fa-arrow-circle-right"></i></a>
+                        </div>
+                    </div>
             	</div>
             </div>
             <div class="row mb-5">
@@ -246,6 +248,13 @@
                     </div>  
                 </div>
             </div>
+            <!-- Calendar -->
+            <div class="container-fluid shadow-sm p-3 my-3 border-form-override" style="max-width: 600px;">
+                <h4><i class="far fa-calendar"></i> EVENTS CALENDAR</h4>
+                <div id="eventsCalendar" style="overflow-x: auto;">
+                    <!-- Calendar Placeholder -->
+                </div>
+            </div>
     	</div>
     </div>
     <?php 
@@ -253,8 +262,26 @@
         // the include or require statement takes all the text/code/markup that exists in the specified file    
     ?>
 
-    <!-- Chart Scripts -->
+    <!-- Calendar Chart Scripts -->
     <script>
+        // Initialize Calendar
+        var eventSchedules = <?php echo json_encode($eventSchedules);?>;
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('eventsCalendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                themeSystem: 'bootstrap',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,listMonth'
+                },
+                dayMaxEvents: true, // allow "more" link when too many events
+                events: eventSchedules
+            });
+            calendar.render();
+        });
+
         // Initialize Charts
         var eventChart;
         var inviteeChart;

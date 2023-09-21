@@ -134,18 +134,18 @@
                         <table style="font-family:'Open Sans',sans-serif;" role="presentation" cellpadding="0" cellspacing="0" width="100%" border="0">
                             <tbody>
                             <tr>
-                                <td style="overflow-wrap:break-word;word-break:break-word;padding:10px;font-family:'Open Sans',sans-serif;" align="left">
+                                <td class="v-container-padding-padding" style="overflow-wrap:break-word;word-break:break-word;padding:18px 10px 10px;font-family:'Open Sans',sans-serif;" align="left">
 
-                                <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                  <table width="100%" cellpadding="0" cellspacing="0" border="0">
                                     <tr>
-                                    <td style="padding-right: 0px;padding-left: 0px;" align="center">
+                                      <td style="padding-right: 0px;padding-left: 0px;" align="center">
 
-                                        <img align="center" border="0" src="https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1627753862600-627056.png" alt="Image" title="Image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 100%;max-width: 280px;"
-                                        width="280" />
+                                        <img align="center" border="0" src="https://s3.amazonaws.com/unroll-images-production/projects%2F30299%2F1642571122377-Main+Banner.png" alt="Image" title="Image" style="outline: none;text-decoration: none;-ms-interpolation-mode: bicubic;clear: both;display: inline-block !important;border: none;height: auto;float: none;width: 100%;max-width: 280px;"
+                                          width="280" />
 
-                                    </td>
+                                      </td>
                                     </tr>
-                                </table>
+                                  </table>
 
                                 </td>
                             </tr>
@@ -313,7 +313,7 @@
                                     <p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
                                     <p style="font-size: 14px; line-height: 140%; text-align: justify;">Your sincerely,</p>
                                     <p style="font-size: 14px; line-height: 140%; text-align: justify;">&nbsp;</p>
-                                    <p style="font-size: 14px; line-height: 140%; text-align: justify;"><strong>{$username}</strong></p>
+                                    <p style="font-size: 14px; line-height: 140%; text-align: justify;"><strong>{$adminAccountName}</strong></p>
                                     <p style="font-size: 14px; line-height: 140%; text-align: justify;">Organizer</p>
                                 </div>
 

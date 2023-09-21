@@ -32,7 +32,7 @@
     <!-- Modified Styles -->
     <style>
 	    .user_card {
-	    	height: 490px;
+	    	height: 620px;
 		}
 	</style>
 </head>
@@ -41,62 +41,88 @@
         <!-- Main Body -->
 		<div class="d-flex justify-content-center h-100">
 			<!-- Login Form -->
-			<div class="user_card">
-				<div class="d-flex justify-content-center">
-					<div class="brand_logo_container">
-						<img src="img/logo.svg" class="brand_logo" alt="Logo" onContextMenu="return false;" ondragstart="return false;">
-						<h3 class="display-5 py-2 text-truncate mt-1">Login</h3>
+			<div style="width: 100%; height: 710px; display: flex; justify-content: center;">
+				<div class="user_card">
+					<div class="d-flex justify-content-center">
+						<div class="brand_logo_container">
+							<a href=".">
+								<img src="img/logo_circle.svg" class="brand_logo" alt="Logo" onContextMenu="return false;" ondragstart="return false;">
+							</a>
+							<h3 class="display-5 py-2 text-truncate mt-1" style="font-weight: bold; font-size: 2rem;">Login</h3>
+						</div>
 					</div>
-				</div>
-				<div class="d-flex justify-content-center form_container">
-					<form name="login" action="" method="post" onsubmit="return loginValidation()">
-						<?php
-					        if (!empty($signup_msg)) {
-			            ?>
-	                    <div class="server-response success-msg">You have registered successfully.</div>
-	                    <?php
-					        }
-				        ?>
-						<?php if (!empty($loginResult)){?>
-							<div class="error-msg"><?php echo $loginResult;?></div>
-						<?php }?>
-						<?php if (!empty($deleteAccountMsg)) { ?>
-							<div class="server-response error-msg">Your account has been deleted.</div>
-						<?php }?>
-						<!-- Username Block -->
-						<span class="required error" id="username-info"></span>
-						<div class="input-group mb-3">
-							<div class="input-group-append">
-								<span class="input-group-text"><i class="fa fa-user"></i></span>
+					<div class="d-flex justify-content-center form_container">
+						<form name="login" action="" method="post" onsubmit="return loginValidation()">
+							<?php
+						        if (!empty($signup_msg)) {
+				            ?>
+		                    <div class="server-response success-msg">You have registered successfully.</div>
+		                    <?php
+						        }
+					        ?>
+							<?php if (!empty($loginResult)){?>
+								<div class="error-msg"><?php echo $loginResult;?></div>
+							<?php }?>
+							<?php if (!empty($deleteAccountMsg)) { ?>
+								<div class="server-response error-msg">Your account has been deleted.</div>
+							<?php }?>
+							<!-- Username Block -->
+							<span class="required error" id="username-info"></span>
+							<div class="input-group mb-3">
+								<div class="input-group-append">
+									<span class="input-group-text"><i class="fa fa-user"></i></span>
+								</div>
+								<input type="text" name="username" id="username" class="form-control input_user" placeholder="Username" value="<?php if(isset($_COOKIE["username"])) { echo $_COOKIE["username"]; } ?>">
 							</div>
-							<input type="text" name="username" id="username" class="form-control input_user" placeholder="Username" value="<?php if(isset($_COOKIE["username"])) { echo $_COOKIE["username"]; } ?>">
-						</div>
-						<!-- Password Block -->
-						<span class="required error" id="login-password-info"></span>
-						<div class="input-group mb-3">
-							<div class="input-group-append">
-								<span class="input-group-text"><i class="fa fa-key"></i></span>
+							<!-- Password Block -->
+							<span class="required error" id="login-password-info"></span>
+							<div class="input-group mb-3">
+								<div class="input-group-append">
+									<span class="input-group-text"><i class="fa fa-key"></i></span>
+								</div>
+								<input type="password" name="login-password" id="login-password" class="form-control input_pass" placeholder="Password" value="<?php if(isset($_COOKIE["password"])) { echo $_COOKIE["password"]; } ?>" >
 							</div>
-							<input type="password" name="login-password" id="login-password" class="form-control input_pass" placeholder="Password" value="<?php if(isset($_COOKIE["password"])) { echo $_COOKIE["password"]; } ?>" >
-						</div>
-						<!-- Remember Me Block -->
-						<div class="form-group">
-							<div class="custom-control custom-checkbox">
-								<input type="checkbox" name="rememberMe" class="custom-control-input" id="rememberMe" <?php if(isset($_COOKIE["username"])) { echo "checked"; } ?>>
-								<label class="custom-control-label" for="rememberMe">Remember me</label>
+							<!-- Type Block -->
+							<select class="form-control mb-3" name="login-type" id="login-type">
+								<option value="admin">Admin</option>
+								<option value="user">User</option>
+							</select>
+							<!-- Remember Me Block -->
+							<div class="form-group">
+								<div class="custom-control custom-checkbox">
+									<input type="checkbox" name="rememberMe" class="custom-control-input" id="rememberMe" <?php if(isset($_COOKIE["username"])) { echo "checked"; } ?>>
+									<label class="custom-control-label" for="rememberMe">Remember me</label>
+								</div>
 							</div>
-						</div>
-						<div class="d-flex justify-content-center mt-3 login_container">
-				 			<button type="submit" name="login-btn" id="login-btn" value="Login" class="btn login_btn"><i class="fas fa-sign-in-alt"></i> Login</button>
-				   		</div>
-					</form>
-				</div>
-				<div class="mt-4">
-					<div class="d-flex justify-content-center links">
-						Don't have an account? <a href="signup.php" class="ml-2">Sign Up</a>
+							<div class="mt-3 login_container">
+					 			<button type="submit" name="login-btn" id="login-btn" value="Login" class="btn login_btn"><i class="fas fa-sign-in-alt"></i> Log In</button>
+					 			<p class="text-center my-2">OR</p>
+					 			<button type="button" id="google-login-btn" class="social-login-container">
+					 				<div class="social-login-btn google-btn">
+						 				<div class="social-icon-wrapper">
+						 					<img class="social-icon" src="img/icon_google.svg">
+						 				</div>
+						 				<p class="social-login-btn-text"><b>Log in with Google</b></p>
+						 			</div>
+					 			</button>
+					 			<button type="button" id="fb-login-btn" class="social-login-container">
+					 				<div class="social-login-btn facebook-btn">
+						 				<div class="social-icon-wrapper">
+						 					<img class="social-icon" src="img/icon_fb.svg">
+						 				</div>
+						 				<p class="social-login-btn-text"><b>Log in with Facebook</b></p>
+						 			</div>
+					 			</button>
+					   		</div>
+						</form>
 					</div>
-					<div class="d-flex justify-content-center links">
-						<a href="forgot-password.php">Forgot your password?</a>
+					<div class="mt-4">
+						<div class="d-flex justify-content-center links">
+							Don't have an account? <a href="signup.php" class="ml-2">Sign Up</a>
+						</div>
+						<div class="d-flex justify-content-center links">
+							<a href="forgot-password.php">Forgot your password?</a>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -131,6 +157,20 @@
 			}
 			return valid;
 		}
+
+		// Google Login Button
+		$("#google-login-btn").click(function() {
+			var loginType = "";
+			if ($("#login-type").val() == "User") {
+				loginType = "?user";
+			}
+			location.href='./auth/google-login.php' + loginType;
+		});
+
+		// Facebook Login Button
+		$("#fb-login-btn").click(function() {
+			location.href='./auth/facebook-confirm.php';
+		});		
 	</script>
 </body>
 </html>

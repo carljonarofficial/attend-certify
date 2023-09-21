@@ -58,7 +58,7 @@
 	// add a page
 	$pdf->AddPage($certOrientation, $certSize);
 	// set the source file
-	$pdf->setSourceFile('certificate-templates/'.$certificateFile);
+	$pdf->setSourceFile('./certificate-templates/'.$certificateFile);
 	// import page 1
 	$tplIdx = $pdf->importPage(1);
 	// use the imported page and place it at position 0, 0

@@ -4,12 +4,12 @@
 	if(!empty($_POST['attendanceAction']) && $_POST['attendanceAction'] == 'listAttendance') {
 	    require_once './model/attendance-member.php';
 	    $member = new AttendanceMember();
-	    $addResponse = $member->listAttendance($currentEventID);
+	    $addResponse = $member->listAttendance($currentEventID, $_POST['selectDateStart'], $_POST['selectDateEnd']);
 	}
 	if(!empty($_POST['attendanceAction']) && $_POST['attendanceAction'] == 'listInvitee') {
 	    require_once './model/attendance-member.php';
 	    $member = new AttendanceMember();
-	    $addResponse = $member->listInvitee($currentEventID);
+	    $addResponse = $member->listInvitee($currentEventID, $_POST['selectDateStart'], $_POST['selectDateEnd']);
 	}
 	if(!empty($_POST['attendanceAction']) && $_POST['attendanceAction'] == 'scanAttendance') {
 	    require_once './model/attendance-member.php';

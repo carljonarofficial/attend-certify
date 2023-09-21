@@ -2,7 +2,7 @@
 		<footer class="container-fluid bg-primary text-white">
 			<!-- Copyright -->
 			<div class="container footer-copyright text-center py-3">
-				&copy; 2021. All Rights Reserved. This system created by PALADO Group.
+				&copy; <?php echo date("Y");?>. All Rights Reserved. This system created by PALADO Group.
 			</div>
 		</footer>
 		<!-- Navbar Button Toggle -->

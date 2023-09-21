@@ -99,6 +99,34 @@
 			// Using database connection file here
     		include 'dbConnection.php';
 
+    		// Default Time Zone
+    		date_default_timezone_set('Asia/Manila');
+
+    		// Current Date and Time
+    		$currentDateTime = date("Y-m-d H:i:s");
+
+    		// End Add Invitee Flag
+    		$endAddInviteeFlag = false;
+
+    		// Fetch Up Event Date and End Time Information
+    		$eventDateEndTimeInfoStmt = $conn->prepare("SELECT CONCAT(`date_end`, ' ', `time_conclusive`) AS `date_endtime` FROM `events` WHERE `ID` = ?");
+    		$eventDateEndTimeInfoStmt->bind_param("i", $currentEventID);
+    		$eventDateEndTimeInfoStmt->execute();
+    		$eventDateEndTimeInfoResult = $eventDateEndTimeInfoStmt->get_result();
+    		$eventDateEndTimeInfoStmt->close();
+    		if ($eventDateEndTimeInfoResult->num_rows > 0) {
+    			while ($row = $eventDateEndTimeInfoResult->fetch_assoc()) {
+    				$eventDateAndEndEventTime = $row["date_endtime"];
+    			}
+                $diffEndTimes = (strtotime($currentDateTime) - strtotime($eventDateAndEndEventTime)) / 60 / 60 / 24;
+                // Check if Intervals are Allowed to Scan Attendance
+                if ($diffEndTimes < 2){
+                    $endAddInviteeFlag = true;
+                }
+    		} else {
+    			exit("Ann error has occured.");
+    		}
+
     		// SQL Query
     		$sqlQuery = "SELECT * FROM `invitees` WHERE `event_ID` = ? AND `status` = 1 ";
 
@@ -143,6 +171,17 @@
 			// Save into array
 			$inviteeData = array();
 	        while ($row = $inviteeInfo->fetch_assoc()) {
+	        	if ($endAddInviteeFlag) {
+	        		$moreBtnStr = '<div class="dropdown">
+	        						<button type="button" class="btn btn-secondary btn-xs w-100" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i> More</button>
+	        						<div class="dropdown-menu dropdown-menu-right p-2">
+	        							<button type="button" name="editInvitee" id="'.$row["ID"].'" class="btn btn-warning btn-xs editInvitee w-100 my-1"><i class="fas fa-user-edit"></i> Edit</button>
+	        							<button type="button" name="deleteInvitee" id="'.$row["ID"].'" class="btn btn-danger btn-xs deleteInvitee w-100 my-1"><i class="fas fa-trash-alt"></i> Delete</button>
+	        						</div>
+	        					</div>';
+	        	} else {
+	        		$moreBtnStr = '';
+	        	}
 	        	$ivtRows = array(
 	        		"view"=> '<button type="button" name="viewInvitee" id="'.$row["ID"].'" class="btn btn-primary btn-xs viewInvitee w-100"><i class="fas fa-eye"></i> View</button>',
 	        		"ID"=> $row["ID"],
@@ -150,14 +189,7 @@
 	        		"middlename"=> ucfirst($row["middlename"]),
 	        		"lastname"=> ucfirst($row["lastname"]),
 	        		"type"=> $row["type"],
-	        		"delete"=> '<div class="dropdown">
-	        						<button type="button" class="btn btn-secondary btn-xs w-100" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-v"></i> More</button>
-	        						<div class="dropdown-menu dropdown-menu-right p-2">
-	        							<button type="button" name="sendEmailInvitee" id="'.$row["ID"].'" class="btn btn-info btn-xs sendEmailInvitee w-100 my-1"><i class="fas fa-envelope"></i> Send</button>
-	        							<button type="button" name="editInvitee" id="'.$row["ID"].'" class="btn btn-warning btn-xs editInvitee w-100 my-1"><i class="fas fa-user-edit"></i> Edit</button>
-	        							<button type="button" name="deleteInvitee" id="'.$row["ID"].'" class="btn btn-danger btn-xs deleteInvitee w-100 my-1"><i class="fas fa-trash-alt"></i> Delete</button>
-	        						</div>
-	        					</div>',
+	        		"delete"=> $moreBtnStr,
 	        		"checkbox"=> '<input type="checkbox" class="selectInvitee" value="'.$row["ID"].'">'
 	        	);
 	        	$inviteeData[] = $ivtRows;
@@ -201,6 +233,9 @@
 				// Set Default Time Zone
 				date_default_timezone_set("Asia/Manila");
 
+				// Current Date and Time
+				$currentDateTime = date("Y-m-d H:i:s");
+
 				// Database Connection
 				include 'dbConnection.php';
 
@@ -208,14 +243,14 @@
 				$inviteeCode  = "IVT-".date("YmdHis")."-".strtoupper(substr(str_shuffle('0123456789abcdefghijklmnopqrstuvwxyz'), 0, 6));	
 
 				// Insert Query
-				$insertStmt = $conn->prepare("INSERT INTO `invitees`(`event_ID`, `invitee_code`, `firstname`, `middlename`, `lastname`, `email`, `phonenum`, `type`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-				$insertStmt->bind_param("isssssss", $currentEventID, $inviteeCode, $inviteeFirstName, $inviteeMiddleName, $inviteeLastName, $inviteeEmail, $inviteePhoneNum, $inviteeType);
+				$insertStmt = $conn->prepare("INSERT INTO `invitees`(`event_ID`, `invitee_code`, `firstname`, `middlename`, `lastname`, `email`, `phonenum`, `type`, `datetime_added`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+				$insertStmt->bind_param("issssssss", $currentEventID, $inviteeCode, $inviteeFirstName, $inviteeMiddleName, $inviteeLastName, $inviteeEmail, $inviteePhoneNum, $inviteeType, $currentDateTime);
 
 				// Validate if Insert Query is successful or not
 				if ($insertStmt->execute()) {
 					$insertStmt->close();
-					$response = array('Status' => "success");
-					echo json_encode($response);
+
+					$this->sendDirectEmailInvitation($currentEventID, $inviteeCode, $inviteeFirstName." ".$inviteeMiddleName." ".$inviteeLastName, $inviteeEmail);
 				}else{
 					$response = array('Status' => "error");
 					echo json_encode($response);
@@ -265,8 +300,19 @@
 				// Validate if Update Query is successful or not
 				if ($updateStmt->execute()) {
 					$updateStmt->close();
-					$response = array('Status' => "success");
-					echo json_encode($response);
+
+					// Get Invitee Code
+					$ivtCodeStmt = $conn->prepare("SELECT `invitee_code` FROM `invitees` WHERE `event_ID` = ? AND `ID` = ?");
+					$ivtCodeStmt->bind_param("ii", $currentEventID, $presentInviteeID);
+					if ($ivtCodeStmt->execute()) {
+						$ivtCodeResult = $ivtCodeStmt->get_result();
+						$ivtCodeStmt->close();
+						$ivtCodeRow = $ivtCodeResult->fetch_assoc();
+						$this->sendDirectEmailInvitation($currentEventID, $ivtCodeRow["invitee_code"], $inviteeFirstName." ".$inviteeMiddleName." ".$inviteeLastName, $inviteeEmail);
+					} else {
+						$response = array('Status' => "error");
+						echo json_encode($response);
+					}
 				}else{
 					$response = array('Status' => "error");
 					echo json_encode($response);
@@ -396,16 +442,16 @@
 			    // Server settings
 			    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
 			    $mail->isSMTP();
-			    $mail->Host = 'smtp.gmail.com';
+			    $mail->Host = 'smtp.hostinger.com';
 			    $mail->SMTPAuth = true;
 			    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 			    $mail->Port = 587;
 
-			    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
-			    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+			    $mail->Username = 'invitations@attend-certify.com';
+			    $mail->Password = 'VLDHpmnE_c2ZhLA';
 
 			    // Sender and recipient settings
-			    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+			    $mail->setFrom('invitations@attend-certify.com', 'Attend and Certify Invitations');
 			    $mail->addAddress($inviteeEmail, $inviteeName);
 			    // $mail->addReplyTo('example@gmail.com', 'Sender Name'); // to set the reply to
 
@@ -423,12 +469,103 @@
 
 			    $mail->send();
 			    // echo "Email message sent.";
-
+				
 			    $response = array('Status' => "success");
 				echo json_encode($response);
 			} catch (Exception $e) {
 			    // echo "Error in sending email. Mailer Error: {$mail->ErrorInfo}";
 
+			    $response = array('Status' => "error");
+				echo json_encode($response);
+			}
+		}
+
+		/**
+		 * To send directly an email invitation
+		 */
+		public function sendDirectEmailInvitation($currentEventID, $inviteeCode, $inviteeName, $inviteeEmail) {
+			// passing true in constructor enables exceptions in PHPMailer
+			$mail = new PHPMailer(true);
+
+			// Set Default Time Zone and Date Today
+			date_default_timezone_set("Asia/Manila");
+			$dateToday = date("F d, Y");
+
+			// Validate if the admin logged in
+    		include 'validateLogin.php';
+
+			// Database Connection
+			include 'dbConnection.php';
+
+			// Fetch up an event information
+			$eventStmt = $conn->prepare("SELECT * FROM `events` WHERE `admin_ID` = ? AND `ID` = ?");
+	        $eventStmt->bind_param('ii', $id, $currentEventID);
+	        $eventStmt->execute();
+	        $eventInfo =  $eventStmt->get_result();
+	        $eventStmt->close();
+	        while ($row = $eventInfo->fetch_assoc()) {
+	            $eventTitle = $row["event_title"];
+				if ($row['date'] == $row['date_end']) {
+					$eventDate = date_format(date_create($row["date"]),"F d, Y");
+				} else {
+					if (date_format(date_create($row['date']),"Y") == date_format(date_create($row['date_end']),"Y")) {
+						$yearStr = date_format(date_create($row['date']),"Y");
+						if (date_format(date_create($row['date']),"M") == date_format(date_create($row['date_end']),"M")) {
+							$monthStr = date_format(date_create($row['date']),"M ").date_format(date_create($row['date']),"d-").date_format(date_create($row['date_end']),"d");
+						} else {
+							$monthStr = date_format(date_create($row['date']),"M d").'-'.date_format(date_create($row['date_end']),"M d");
+						}
+						$eventDate = $monthStr.", ".$yearStr;
+					} else {
+						$eventDate = date_format(date_create($row['date']),"M d, Y").' - '.date_format(date_create($row['date_end']),"M d, Y");
+					}
+				}
+	            $eventTimeInclusive = date_format(date_create($row["time_inclusive"]),"h:iA");
+	            $eventTimeConclusive = date_format(date_create($row["time_conclusive"]),"h:iA");
+	            $eventVenue = $row["venue"];
+	            $eventDesciption = $row["description"];
+	            $eventAgenda = $row["agenda"];
+	            $eventTheme = $row["theme"];
+	            $certTemplate = $row["certificate_template"];
+	        }
+			
+			try {
+				// Assign Invitee Code for encoding into base64
+				$text = $inviteeCode;
+
+				// Barcode Model
+				include 'model/barcode-encoded.php';
+				
+				// Get Barcode Base64
+			    $inviteeBarcodeData = $this->createCustomInvitationFile($base64Encoded, $inviteeCode, $inviteeName, $eventTitle, "$eventDate at $eventTimeInclusive-$eventTimeConclusive", $eventVenue);
+
+			    // Server settings
+			    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
+			    $mail->isSMTP();
+			    $mail->Host = 'smtp.hostinger.com';
+			    $mail->SMTPAuth = true;
+			    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+			    $mail->Port = 587;
+
+			    $mail->Username = 'invitations@attend-certify.com';
+			    $mail->Password = 'VLDHpmnE_c2ZhLA';
+
+			    // Sender and recipient settings
+			    $mail->setFrom('invitations@attend-certify.com', 'Attend and Certify Invitations');
+			    $mail->addAddress($inviteeEmail, $inviteeName);
+
+			    // Setting the email content
+			    $mail->IsHTML(true);
+			    $mail->Subject = $eventTitle." - Event Invitation | Attend and Certify";
+			    $mail->addStringEmbeddedImage(base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Encoded)), 'barcodeEmbedded', $inviteeName." - ".$inviteeCode.'.png', "base64", "image/png");
+			    $mail->Body = include 'model/html-email-template-for-invitation.php';
+				$mail->AddStringAttachment(base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $inviteeBarcodeData)), $inviteeName." - ".$inviteeCode.'.png', "base64", "image/png");
+
+			    $mail->send();
+
+			    $response = array('Status' => "success");
+				echo json_encode($response);
+			} catch (Exception $e) {
 			    $response = array('Status' => "error");
 				echo json_encode($response);
 			}
@@ -474,13 +611,13 @@
 			// Server settings
 		    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
 		    $mail->isSMTP();
-		    $mail->Host = 'smtp.gmail.com';
+		    $mail->Host = 'smtp.hostinger.com';
 		    $mail->SMTPAuth = true;
 		    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 		    $mail->Port = 587;
 
-		    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
-		    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+		    $mail->Username = 'invitations@attend-certify.com';
+		    $mail->Password = 'VLDHpmnE_c2ZhLA';
 
 			// Set Default Time Zone and Date Today
 			date_default_timezone_set("Asia/Manila");
@@ -524,7 +661,7 @@
 				    $inviteeBarcodeData = $this->createCustomInvitationFile($base64Encoded, $inviteeCode, $inviteeName, $eventTitle, "$eventDate - $eventTimeInclusive-$eventTimeConclusive", $eventVenue);
 
 				    // Sender and recipient settings
-				    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+				    $mail->setFrom('invitations@attend-certify.com', 'Attend and Certify Invitations');
 				    $mail->addAddress($inviteeEmail, $inviteeName);
 				    // $mail->addReplyTo('example@gmail.com', 'Sender Name'); // to set the reply to
 
@@ -696,6 +833,10 @@
 
 			// Date and Time Config
 			$dateTimeText = "DATE and TIME: $ivtDateTime";
+			$dateTimeParagraph = explode('|', wordwrap($dateTimeText, 50, '|'));
+			foreach ($dateTimeParagraph as $textLine) {
+				$imgHeight += 30;
+			}
 
 			// Venue Config
 			$venueText = "VENUE: $ivtVenue";
@@ -712,7 +853,7 @@
 			$importantNoticeYCoordinates = ($imgWidth/2) - ($importantNoticeTextWidth/2);
 
 			// All Rights Reserved Text
-			$allRightsReservedText = "Copyright 2021. All Rights Reserved. This system created by PALADO Group.";
+			$allRightsReservedText = "Copyright ".date("Y").". All Rights Reserved. This system created by PALADO Group.";
 			$allRightsReservedFontSize = 15;
 			$allRightsReservedTextBox = imagettfbbox($allRightsReservedFontSize, 0, $fontFile, $allRightsReservedText);
 			$allRightsReservedTextWidth = $allRightsReservedTextBox[2] - $allRightsReservedTextBox[0];
@@ -753,8 +894,11 @@
 			$yAxis += 5;
 
 			// Add Date and Time Text to Image
-			imagettftext($imageFrame, $inviteeInfoFontSize, 0, 50, $yAxis, $textColor, $fontFile, $dateTimeText);
-			$yAxis += 35;
+			foreach ($dateTimeParagraph as $textLine) {
+				imagettftext($imageFrame, $inviteeInfoFontSize, 0, 50, $yAxis, $textColor, $fontFile, $textLine);
+				$yAxis += 30;
+			}
+			$yAxis += 5;
 
 			// Add Venue Text to Image
 			foreach ($venueParagraph as $textLine) {

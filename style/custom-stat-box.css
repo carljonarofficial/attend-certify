@@ -1,0 +1,104 @@
+.small-box {
+	border-radius: 0.5rem;
+	display: box;
+	margin-bottom: 20px;
+	position: relative;
+	color: #fff;
+}
+.small-box.small-box-events {
+	background-color: #17a2b8!important;
+}
+.small-box.small-box-invitees {
+	background-color: #28a745!important;
+}
+.small-box.small-box-attendance {
+	background-color: #ebb411!important;
+}
+.small-box.small-box-certificate {
+	background-color: #007bff!important;
+}
+.small-box > .inner-part {
+	padding: 10px;
+}
+.small-box .icon {
+	/*color: rgba(0,0,0,.15);*/
+	color: #fff;
+	z-index: 0;
+}
+@media (min-width: 1200px) {
+	.col-lg-3 .small-box h3 {
+	    font-size: 3.1rem;
+	}
+}
+@media (min-width: 992px) {
+	.col-lg-3 .small-box h3 {
+	    font-size: 2.5rem;
+	}
+}
+.small-box h3, .small-box p {
+    z-index: 5;
+}
+.small-box h3 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin: 0 0 10px;
+    padding: 0;
+    white-space: nowrap;
+}
+.small-box p {
+    font-size: 1rem;
+    font-weight: bold;
+}
+@media (max-width:  767.98px) {
+	.small-box {
+	    text-align: center;
+	}
+	.small-box .icon {
+	    display: none;
+	}
+}
+@media (max-width:  576px) {
+	.small-box {
+	    text-align: left;
+	}
+	.small-box .icon {
+	    display: initial;
+	}
+}
+@media (max-width:  430px) {
+	.small-box {
+	    text-align: center;
+	}
+	.small-box .icon {
+	    display: none;
+	}
+}
+.small-box .icon > img {
+    font-size: 70px;
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    transition: -webkit-transform .3s linear;
+    transition: transform .3s linear;
+    transition: transform .3s linear,-webkit-transform .3s linear;
+}
+.small-box:hover {
+	text-decoration: none
+}
+.small-box:hover .icon > img{
+	-webkit-transform: scale(1.1);
+	transform: scale(1.1)
+}
+.small-box > .small-box-footer {
+    background-color: rgba(0,0,0,.1);
+    color: rgba(255,255,255,.8);
+    display: block;
+    padding: 3px 0;
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    z-index: 10;
+}
+.small-box > .small-box-footer:hover {
+	background-color: rgba(0,0,0,.25);;
+}

@@ -12,14 +12,12 @@
 		<meta name="theme-color" content="#ffffff">
 
 		<!-- Bootstrap Stylesheet -->
-		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-		<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-		<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+		<link rel="stylesheet" href="style/bootstrap/bootstrap.min.css">
+		<script src="scripts/jquery-3.5.1.min.js"></script>
+		<script src="scripts/bootstrap/bootstrap.bundle.min.js"></script>
 
 		<!-- Other Custom Stylesheet -->
-		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css" crossorigin="anonymous">
+		<link rel="stylesheet" href="style/font-awesome/all.css" crossorigin="anonymous">
 		<link href="themes/explorer-fas/theme.css" media="all" rel="stylesheet" type="text/css"/>
 
 		<!-- Main Custom Stylesheet -->

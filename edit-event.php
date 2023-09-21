@@ -28,6 +28,7 @@
 	    		$eventID = $row['ID'];
 				$eventTitle = $row["event_title"];
 				$eventDate = $row["date"];
+				$eventDateEnd = $row["date_end"];
 				$eventTimeInclusive = $row["time_inclusive"];
 				$eventTimeConclusive = $row["time_conclusive"];
 				$eventVenue = $row["venue"];
@@ -113,8 +114,14 @@
 					                    <label for="eventDate" class="label-add-edit-event">
 				                    		Date: <span class="required error" id="date-info"></span>
 				                    	</label>
-					                    <input type="date" class="form-control col-sm-7" name="eventDate" id="eventDate" value="<?php echo $eventDate;?>">
+					                    <input type="date" class="form-control col-sm-7" name="eventDate" id="eventDate" value="<?php echo $eventDate;?>" onchange="dateValidation(this.value, true)" onchange="dateValidation(this.value, true)">
 					                </div>
+									<div class="form-group">
+										<label for="eventDateEnd" class="label-add-edit-event">
+											Date End: <span class="required error" id="date-end-info"></span>
+										</label>
+										<input type="date" class="form-control col-sm-7" name="eventDateEnd" id="eventDateEnd" value="<?php echo $eventDateEnd;?>" onchange="dateValidation(this.value, false)" onchange="dateValidation(this.value, false)">
+									</div>
 					                <div class="form-group">
 					                	<label for="time" class="label-add-edit-event">Time:</label>
 						                <div class="col-sm-6 p-2 time-event">
@@ -122,7 +129,7 @@
 							                    <label for="inclusiveTime" class="label-add-edit-event">
 							                    	From: <span class="required error" id="inclusiveTime-info"></span>
 							                    </label>
-							                    <input type="time" class="form-control event-time w-100" name="inclusiveTime" id="inclusiveTime" value="<?php echo $eventTimeInclusive;?>" onchange="timeValidationInclusive()" oninput="timeValidationInclusive()">
+							                    <input type="time" class="form-control event-time w-100" name="inclusiveTime" id="inclusiveTime" value="<?php echo $eventTimeInclusive;?>" onchange="timeValidationInclusive()" oninput="timeValidationInclusive()"  onchange="dateValidation(this.value, true)" onchange="dateValidation(this.value, true)">
 							                </div>
 							                <div class="form-group">
 							                	<label for="conclusiveTime" class="label-add-edit-event">
@@ -159,8 +166,14 @@
 					                    <input type="text" class="form-control" name="theme" id="theme" placeholder="Theme"  value="<?php echo $eventTheme;?>">
 					                </div>
 					                <div class="form-group">
-					                    <label for="cert-attachment" class="label-add-edit-event">Certificate Template Attachment</label>
-					                    <input type="file" name="certAttachment" id="certAttachment">
+										<label for="cert-attachment" class="label-add-edit-event">Certificate Template Attachment</label>
+										<div class="custom-control custom-checkbox mb-1">
+											<input type="checkbox" class="custom-control-input" id="changeCertTemplateCheckbox" name="changeCertTemplateCheckbox">
+											<label class="custom-control-label" for="changeCertTemplateCheckbox">Check this if you want to change this template.</label>
+										</div>
+										<div id="certTemplateFormGroup">
+											<input type="file" name="certAttachment" id="certAttachment">
+										</div>
 					                </div>
 					                <div class="form-group text-center">
 					                	<div class="btn-group mt-1">
@@ -198,6 +211,22 @@
     ?>
 	<!-- Scripts -->
 	<script>
+		// Date Validation
+		function dateValidation(dateValue1, flag) {
+			var date1ID = "eventDateEnd", date2ID = "eventDate";
+			if (flag == true) {
+				date1ID = "eventDate";
+				date2ID = "eventDateEnd";
+			}
+			dateValue1 = new Date(dateValue1).getTime();
+			dateValue2 = new Date(document.getElementById(date2ID).value).getTime();
+			if (dateValue1 > dateValue2 && flag == true) {
+				document.getElementById(date2ID).value = document.getElementById(date1ID).value;
+			} else if (dateValue1 < dateValue2 && flag == false) {
+				document.getElementById(date1ID).value = document.getElementById(date2ID).value;
+			}
+		}
+
 		// Time input validation for inclusive
 		function timeValidationInclusive() {
 			var time = document.getElementById("inclusiveTime").value;
@@ -247,14 +276,31 @@
 		  	var mins = piece[0]*60 + + piece[1] - minsToSubtract;
 
 		  	return D(mins % (24 * 60) / 60 | 0) + ':' + D(mins % 60);  
-		}  
+		}
+
+		// Change Certificate Template Checkbox
+		$("#changeCertTemplateCheckbox").click(function () {
+			// Check if you want to change this template
+			if ($("#changeCertTemplateCheckbox").prop("checked")) {
+				$('#certAttachment').fileinput('clear').fileinput('refresh', {
+					showPreview: true,
+					required: true
+				});
+				$("#certTemplateFormGroup").show();
+			} else {
+				$('#certAttachment').fileinput('clear').fileinput('refresh', {
+					showPreview: false,
+					required: false
+				});
+				$("#certTemplateFormGroup").hide();
+			}
+		});
+
 		// File Upload Script
-		// var $js_array = "<?php echo $certTemplate;?>";
-		// var $certAttach = "#certAttachment";
-  //       var $certFileType = $js_array.substring($js_array.indexOf(".")+1);
-  //       var $initialFileSize = "<?php echo $certTemplateFileSize;?>";
+		$("#certTemplateFormGroup").hide();
 		$("#certAttachment").fileinput({
 	        theme: 'fas',
+			showPreview: false,
 	        showClose: false,
 	        showRemove:true,
 	        showUpload: false,
@@ -263,22 +309,11 @@
 	        maxFileSize: 20000,
 	        initialPreviewShowDelete: false,
 	        allowedFileExtensions: ['pdf'],
-	        required:true
-	     //    overwriteInitial: false,
-	     //    initialPreview: [// PDF DATA
-      //           'http://localhost/attend-certify/certificate-templates/' + $js_array
-      //       ],
-      //       initialPreviewAsData: true, // identify if you are sending preview data only and not the raw markup
-      //       initialPreviewConfig: [
-      //       	{
-      //       		type: $certFileType,
-      //       		size: $initialFileSize,
-      //       		caption: $js_array, 
-      //       		downloadUrl: 'http://localhost/attend-certify/certificate-templates/' + $js_array        		}
-    		// ]
+	        required: false
 	    }).on('filepreupload', function(event, data, previewId, index) {
 	        alert('The description entered is:\n\n' + ($('#description').val() || ' NULL'));
 	    });
+		
 	    // Add event validation
 	    function addEventValidation() {
 	    	var valid = true;

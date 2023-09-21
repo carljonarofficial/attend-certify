@@ -1,12 +1,12 @@
 <?php
     include __DIR__.'/PDF417/PDF417.php';
     include __DIR__.'/PDF417/pColor.php';
-    include __DIR__.'/PDF417/Encoder\Encoder.php';
-    include __DIR__.'/PDF417/Encoder\EncoderNumber.php';
-    include __DIR__.'/PDF417/Encoder\EncoderText.php';
-    include __DIR__.'/PDF417/Encoder\EncoderByte.php';
-    include __DIR__.'/PDF417/Encoder\ReedSolomon.php';
-    include __DIR__.'/PDF417/Encoder\Codes.php';
+    include __DIR__.'/PDF417/Encoder/Encoder.php';
+    include __DIR__.'/PDF417/Encoder/EncoderNumber.php';
+    include __DIR__.'/PDF417/Encoder/EncoderText.php';
+    include __DIR__.'/PDF417/Encoder/EncoderByte.php';
+    include __DIR__.'/PDF417/Encoder/ReedSolomon.php';
+    include __DIR__.'/PDF417/Encoder/Codes.php';
     include __DIR__.'/PDF417/Renderer.php';
 
     use PDF417\PDF417;

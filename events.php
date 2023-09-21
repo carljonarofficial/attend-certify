@@ -16,15 +16,12 @@
 
     // Set session
     session_start();
-    if(isset($_POST['records-limit'])){
-        $_SESSION['records-limit'] = $_POST['records-limit'];
-    }
     if (isset($_POST['searchEvent'])) {
         $_SESSION['searchEvent'] = $_POST['searchEvent'];
     }
 
     // Fetch all event records with limit to display
-    $limit = isset($_SESSION['records-limit']) ? $_SESSION['records-limit'] : 5;
+    $limit = (isset($_GET['limit']) && is_numeric($_GET['limit']) ) ? $_GET['limit'] : 5;
     $page = (isset($_GET['page']) && is_numeric($_GET['page']) ) ? $_GET['page'] : 1;
     $searchInput = isset($_SESSION['searchEvent']) ? $_SESSION['searchEvent']: '';
     $searchLength = strlen($searchInput);
@@ -59,6 +56,9 @@
     // Event increment
     $increment = 1;
 
+    // Current Date and Time
+    $currentDateTime = date("Y-m-d H:i:s");
+
     // If the admin click yes to delete an event, then it will proceed here
     use Eventpot\EventMember;
     if (! empty($_POST["deleteEvent-btn"])) {
@@ -81,6 +81,9 @@
     <style>
         .modal {
             overflow-y: auto;
+        }
+        .card-title.text-left {
+            height: 30px;
         }
     </style>
 </head>
@@ -169,12 +172,12 @@
                             <!-- Select dropdown -->
                             <div class="col mt-3">
                                 <div class="d-flex flex-row-reverse bd-highlight">
-                                    <form action="events.php" method="post">
+                                    <form action="events" method="post">
                                         <select name="records-limit" id="records-limit" class="form-control custom-select">
                                             <option disabled selected>Display Limit</option>
                                             <?php foreach([5,7,10,12] as $limit) : ?>
                                             <option
-                                                <?php if(isset($_SESSION['records-limit']) && $_SESSION['records-limit'] == $limit) echo 'selected'; ?>
+                                                <?php if(isset($_GET['limit']) && $_GET['limit'] == $limit) echo 'selected'; ?>
                                                 value="<?= $limit; ?>">
                                                 <?= $limit; ?>
                                             </option>
@@ -216,10 +219,30 @@
                                                     <h4 class="event-title"><a href="#" data-toggle="modal" data-target="#eventModal<?php echo $increment; ?>"><?php echo $row['event_title'];?></a></h4>
                                                 </div>
                                                 <div class="card-title text-left">
-                                                    <h6><i class="fa fa-calendar"></i> Date: <?php echo date_format(date_create($row['date']),"M d, Y");?></h6>
+                                                    <h6>
+                                                        <i class="fa fa-calendar"></i> 
+                                                        Date: 
+                                                        <?php
+                                                            if ($row['date'] == $row['date_end']) {
+                                                                echo date_format(date_create($row['date']),"M d, Y");
+                                                            } else {
+                                                                if (date_format(date_create($row['date']),"Y") == date_format(date_create($row['date_end']),"Y")) {
+                                                                    $yearStr = date_format(date_create($row['date']),"Y");
+                                                                    if (date_format(date_create($row['date']),"M") == date_format(date_create($row['date_end']),"M")) {
+                                                                        $monthStr = date_format(date_create($row['date']),"M ").date_format(date_create($row['date']),"d-").date_format(date_create($row['date_end']),"d");
+                                                                    } else {
+                                                                        $monthStr = date_format(date_create($row['date']),"M d").'-'.date_format(date_create($row['date_end']),"M d");
+                                                                    }
+                                                                    echo $monthStr.", ".$yearStr;
+                                                                } else {
+                                                                    echo date_format(date_create($row['date']),"M d, Y").' - '.date_format(date_create($row['date_end']),"M d, Y");
+                                                                }
+                                                            }
+                                                        ?>
+                                                    </h6>
                                                 </div>
                                                 <div class="card-title text-left">
-                                                    <h6><i class="fa fa-clock-o"></i> Time: <?php echo date_format(date_create($row['time_inclusive']),"h:iA");?> - <?php echo date_format(date_create($row['time_conclusive']),"h:iA");?></h6>
+                                                    <h6><i class="fas fa-clock"></i> Time: <?php echo date_format(date_create($row['time_inclusive']),"h:iA");?> - <?php echo date_format(date_create($row['time_conclusive']),"h:iA");?></h6>
                                                 </div>
                                                 <div class="card-title text-justify">
                                                     <h6 class="event-venue"><i class="fa fa-map-marker"></i> Venue: <?php echo $row['venue'];?></h6>
@@ -227,7 +250,22 @@
                                             </div>
                                             <div class="card-footer event-footer row align-items-center justify-content-center">
                                                 <div>
-                                                    <button type="button" class="btn btn-success h5" style="width: 95px;" onclick="location.href='./scan-attendance.php?eventID=<?php echo $row['ID']?>';"><i class="fas fa-barcode"></i> Scan</button><br>
+                                                    <?php
+                                                        // Get Before Start Time of Event 1 Hour
+                                                        $beforeStartTime = date("Y-m-d H:i:s", strtotime($row['date']." ".$row['time_inclusive']) - (60 * 60));
+                                                        // Difference Between Current and Before Start
+                                                        $diffDaysBefore = (strtotime($currentDateTime) - strtotime($beforeStartTime)) / 60 / 60 / 24;
+                                                        // Get End Event Date and Time
+                                                        $endDateTime = $row['date_end']." ".$row['time_conclusive'];
+                                                        // Difference Between Current and End Time Scan
+                                                        $diffEndTimes = (strtotime($currentDateTime) - strtotime($endDateTime)) / 60 / 60 / 24;
+                                                        // Check if Intervals are Allowed to Scan Attendance
+                                                        if ($diffDaysBefore >= 0 && $diffEndTimes < 2){ ?>
+                                                            <button type="button" class="btn btn-success h5" style="width: 95px;" onclick="location.href='./scan-attendance.php?eventID=<?php echo $row['ID']?>';"><i class="fas fa-barcode"></i> Scan</button><br>
+                                                        <?php } else if ($diffEndTimes >= 2) { ?>
+                                                            <!-- <button type="button" class="btn btn-primary h5" style="width: 95px;" onclick="location.href='./scan-attendance.php?eventID=<?php echo $row['ID']?>';"><i class="fas fa-list"></i> List</button><br> -->
+                                                        <?php }
+                                                    ?>
                                                     <button type="button" class="btn btn-warning h5" style="width: 95px;" onclick="location.href='./edit-event.php?eventID=<?php echo $row['ID']?>';"><i class="fas fa-edit"></i> Edit</button><br>
                                                     <button type="button" class="btn btn-danger h5" data-toggle="modal" data-target="#deleteModal<?php echo $increment; ?>" style="width: 95px;"><i class="fas fa-trash"></i> Delete</button>
                                                 </div>
@@ -279,10 +317,28 @@
                                                                 <div class="card-body">
                                                                     <div class="form-group">
                                                                         <h5><i class="fa fa-calendar"></i> Date:</h5>
-                                                                        <p><?php echo date_format(date_create($row['date']),"F d, Y");?></p>
+                                                                        <p>
+                                                                            <?php
+                                                                                if ($row['date'] == $row['date_end']) {
+                                                                                    echo date_format(date_create($row['date']),"F d, Y");
+                                                                                } else {
+                                                                                    if (date_format(date_create($row['date']),"Y") == date_format(date_create($row['date_end']),"Y")) {
+                                                                                        $yearStr = date_format(date_create($row['date']),"Y");
+                                                                                        if (date_format(date_create($row['date']),"F") == date_format(date_create($row['date_end']),"F")) {
+                                                                                            $monthStr = date_format(date_create($row['date']),"F ").date_format(date_create($row['date']),"d-").date_format(date_create($row['date_end']),"d");
+                                                                                        } else {
+                                                                                            $monthStr = date_format(date_create($row['date']),"F d").'-'.date_format(date_create($row['date_end']),"F d");
+                                                                                        }
+                                                                                        echo $monthStr.", ".$yearStr;
+                                                                                    } else {
+                                                                                        echo date_format(date_create($row['date']),"F d, Y").' - '.date_format(date_create($row['date_end']),"F d, Y");
+                                                                                    }
+                                                                                }
+                                                                            ?>
+                                                                        </p>
                                                                     </div>
                                                                     <div class="form-group">
-                                                                        <h5><i class="fa fa-clock-o"></i> Time:</h5>
+                                                                        <h5><i class="fas fa-clock"></i> Time:</h5>
                                                                         <p><?php echo date_format(date_create($row['time_inclusive']),"h:iA");?> - <?php echo date_format(date_create($row['time_conclusive']),"h:iA");?></p>
                                                                     </div>
                                                                     <div class="form-group">
@@ -315,6 +371,14 @@
                                                                          <h5><i class="fas fa-hourglass-start"></i> Date and Time Added:</h5>
                                                                          <p><?php echo date_format(date_create($row['datetime_added']),"M d, Y h:iA");?></p>
                                                                     </div>
+                                                                    <?php
+                                                                        if (!is_null($row['datetime_edited'])) {
+                                                                            echo '<div class="form-group"><h5>
+                                                                                    <i class="fas fa-edit"></i> Date and Time Edited:</h5>
+                                                                                    <p>'.date_format(date_create($row['datetime_edited']),"M d, Y h:iA").'</p>
+                                                                                </div>';
+                                                                        }
+                                                                    ?>
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -338,17 +402,31 @@
                                     <ul class="pagination">
                                         <!-- Previous Page Button -->
                                         <li class="page-item m-2 <?php if($page <= 1){ echo 'disabled'; } ?>">
-                                            <a class="page-link rounded-left-event font-weight-bold" href="<?php if($page <= 1){ echo '#'; } else { echo "?page=" . $prev; } ?>">Previous</a>
+                                            <a class="page-link rounded-left-event font-weight-bold" href="
+                                                <?php if($page <= 1) { 
+                                                        echo '#'; 
+                                                    } else { 
+                                                        echo "?page=" . $prev; 
+                                                    } 
+                                                    echo (isset($_GET['limit']) && is_numeric($_GET['limit']) ) ? "&limit=".$_GET['limit'] : "";
+                                                ?>">Previous</a>
                                         </li>
                                         <!-- N Page Button -->
                                         <?php for($i = 1; $i <= $totalPages; $i++ ): ?>
                                             <li class="page-item m-2 <?php if($page == $i) {echo 'active'; } ?>">
-                                                <a class="page-link font-weight-bold" href="events.php?page=<?= $i; ?>"> <?= $i; ?> </a>
+                                                <a class="page-link font-weight-bold" href="events?page=<?= $i; echo (isset($_GET['limit']) && is_numeric($_GET['limit']) ) ? "&limit=".$_GET['limit'] : "";?>"> <?= $i; ?> </a>
                                             </li>
                                         <?php endfor; ?>
                                         <!-- Next Page Button -->
                                         <li class="page-item m-2 <?php if($page >= $totalPages) { echo 'disabled'; } ?>">
-                                            <a class="page-link rounded-right-event font-weight-bold" href="<?php if($page >= $totalPages){ echo '#'; } else {echo "?page=". $next; } ?>">Next</a>
+                                            <a class="page-link rounded-right-event font-weight-bold" href="
+                                                <?php if($page >= $totalPages) {
+                                                        echo '#'; 
+                                                    } else {
+                                                        echo "?page=". $next;
+                                                    }
+                                                    echo (isset($_GET['limit']) && is_numeric($_GET['limit']) ) ? "&limit=".$_GET['limit'] : "";
+                                                ?>">Next</a>
                                         </li>
                                       </ul>
                                 </nav>
@@ -373,11 +451,12 @@
     <!-- Scripts -->
     <script>
         // File Upload Script
-        var $js_array =<?php echo json_encode($certTemplates);?>;
+        var $js_array = <?php echo json_encode($certTemplates);?>;
         for (var i = 0; i < <?php echo $allRecords; ?>; i++) {
             var $certAttach = "#certAttachment";
             var $iDString = $certAttach.concat((i+1).toString());
-            var $certFileType = $js_array[i].substring($js_array[i].indexOf(".")+1);
+            // var $certFileType = $js_array[i].substring($js_array[i].indexOf(".")+1);
+            // console.log(i + ": " + $certFileType);
             $($iDString).fileinput({
                 theme: 'fas',
                 showRemove:false,
@@ -388,10 +467,10 @@
                 allowedFileExtensions: ['docx', 'pdf', 'jpeg', 'jpg', 'png'],
                 required:true,
                 initialPreview: [// PDF DATA
-                    'http://localhost/attend-certify/certificate-templates/' + $js_array[i]
+                    'https://attend-certify.com/certificate-templates/' + $js_array[i]
                 ],
                 initialPreviewAsData: true, // identify if you are sending preview data only and not the raw markup
-                initialPreviewConfig: [{type: $certFileType, caption: $js_array[i], downloadUrl: 'http://localhost/attend-certify/certificate-templates/' + $js_array[i]}, // disable download
+                initialPreviewConfig: [{type: "pdf", caption: $js_array[i], downloadUrl: 'https://attend-certify.com/certificate-templates/' + $js_array[i]}, // disable download
                     ],
                 initialPreviewShowDelete: false,
                 showBrowse: false,
@@ -405,7 +484,8 @@
         // Record Limit Script
         $(document).ready(function () {
             $('#records-limit').change(function () {
-                $('form').submit();
+                // $('form').submit();
+                location.href = "events?&limit=" + $(this).children("option:selected").val();
             })
         });
     </script>

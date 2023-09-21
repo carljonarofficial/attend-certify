@@ -98,6 +98,55 @@
 		}
 
 		/**
+		 * To fetch up the searched certificateslist
+		*/
+		public function getSearchCertsList($email) {
+			// Set Default Time Zone
+			date_default_timezone_set("Asia/Manila");
+
+			// Current Date and Time
+			$currentDateTime = date("Y-m-d H:i:s");
+
+			// Using database connection file here
+    		include 'dbConnection.php';
+
+			// Search Statement
+			$searchStmt = $conn->prepare("SELECT certificate.ID, certificate.invitee_code, events.ID AS event_ID, events.event_title, CONCAT(events.date_end, ' ', events.time_conclusive) AS date_time_end FROM certificate
+				INNER JOIN events ON certificate.event_ID = events.ID
+    			INNER JOIN invitees ON certificate.invitee_code = invitees.invitee_code
+    			WHERE invitees.email = ? AND CONCAT(events.date_end, ' ', events.time_conclusive) <= ?
+    			ORDER BY events.ID");
+			$searchStmt->bind_param("ss", $email, $currentDateTime);
+
+			// Check if executes successfully
+			if ($searchStmt->execute()) {
+				$searchResult = $searchStmt->get_result();
+				$searchStmt->close();
+				$resultStr = "";
+
+				$length = 0;
+				while ($row = $searchResult->fetch_assoc()) {
+					$length++;
+					$resultStr .= "<tr>".
+						"<td>$length</td>".
+						"<td>{$row["event_title"]}</td>".
+						"<td><button type='button' value='{$row["invitee_code"]}' class='btn btn-primary btn-xs viewSearchedCertificate w-100'><i class='fas fa-eye'></i> View</button></td>".
+						"</tr>";
+				}
+				$status = "success";
+			} else {
+				$status = "error";
+				$length = null;
+				$resultStr = null;
+			}
+			echo json_encode(array(
+				"status" => $status,
+				"length" => $length,
+				"resultStr" => $resultStr
+			));
+		}
+
+		/**
 		 * To validate up the certificate
 		*/
 		public function validateCertificate($selectedEventID, $scannedCertificateCode)
@@ -264,16 +313,16 @@
 			    // Server settings
 			    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
 			    $mail->isSMTP();
-			    $mail->Host = 'smtp.gmail.com';
+			    $mail->Host = 'smtp.hostinger.com';
 			    $mail->SMTPAuth = true;
 			    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 			    $mail->Port = 587;
 
-			    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
-			    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+			    $mail->Username = 'certificates-noreply@attend-certify.com';
+			    $mail->Password = 'VLDHpmnE_c2ZhLA';
 
-			    // Sender and recipient settings
-			    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+			    // Sender settings
+			    $mail->setFrom('certificates-noreply@attend-certify.com', 'Attend and Certify Certificates');
 			    $mail->addAddress($certEmailInvitee, $certNameInvitee);
 
 			    // Setting the email content
@@ -376,15 +425,16 @@
 			// Server settings
 		    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
 		    $mail->isSMTP();
-		    $mail->Host = 'smtp.gmail.com';
+		    $mail->Host = 'smtp.hostinger.com';
 		    $mail->SMTPAuth = true;
 		    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 		    $mail->Port = 587;
-		    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
-		    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+
+		    $mail->Username = 'certificates-noreply@attend-certify.com';
+		    $mail->Password = 'VLDHpmnE_c2ZhLA';
 
 		    // Sender settings
-		    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+		    $mail->setFrom('certificates-noreply@attend-certify.com', 'Attend and Certify Certificates');
 
 		    // Setting the email content
 		    $mail->IsHTML(true);
@@ -589,6 +639,92 @@
 					echo json_encode($response);
 				}
 			}
+		}
+
+		/**
+		 * To get user certificate
+		 */
+		public function getUserCert($selectedInviteeCode) {
+			// Set Default Time Zone
+			date_default_timezone_set("Asia/Manila");
+
+			// Current Date and Time
+			$currentDateTime = date("Y-m-d H:i:s");
+
+			// Database Connection
+			include 'dbConnection.php';
+
+			// Intial Query Status and name
+			$queryStatus = true;
+			$inviteeName = null;
+
+			// Fetch up an certificate information
+			$certificateStmt = $conn->prepare("SELECT `certificate`.`event_ID`, CONCAT(`invitees`.firstname, ' ', `invitees`.`middlename`, ' ', `invitees`.lastname) AS `invitee_name`, `certificate`.`certificate_code` FROM `certificate` INNER JOIN `invitees` ON `certificate`.`invitee_code` = `invitees`.`invitee_code` WHERE `certificate`.`invitee_code` = ?");
+	        $certificateStmt->bind_param('s', $selectedInviteeCode);
+
+			// Check if executes successfully
+			if ($certificateStmt->execute()) {
+				$certificateInfo = $certificateStmt->get_result();
+				$certificateStmt->close();
+
+				// Check if invitee code is exist in certificate table
+				if ($certificateInfo->num_rows > 0) {
+					$selectedRow = $certificateInfo->fetch_assoc();
+
+					// Get Event ID
+					$currentEventID = $selectedRow["event_ID"];
+
+					// Get Invitee Name
+					$inviteeName = $selectedRow["invitee_name"];
+
+					// Get Event End Date and Time
+					$eventStmt = $conn->prepare("SELECT CONCAT(`date_end`, ' ', `time_conclusive`) AS `end_date_time` FROM `events` WHERE `ID` = ?");
+					$eventStmt->bind_param("i", $currentEventID);
+
+					// Check if Executes Successfully
+					if ($eventStmt->execute()) {
+						$eventInfo = $eventStmt->get_result();
+						$eventStmt->close();
+						$eventRow = $eventInfo->fetch_assoc();
+
+						// Check if end date and time is greater than current date
+						if ($currentDateTime >= $eventRow["end_date_time"]) {
+							// Get Certificate File
+							$certificateFile =  $this->getCertificateTemplateFile($currentEventID);
+							// Get Certificate Code
+							$text = $selectedRow["certificate_code"];
+							// Get Name
+							$name = $selectedRow["invitee_name"];
+
+							include "model/certificate-generator.php";
+
+							$ivtStatus = "available";
+							$base64Cert = $strBase64;
+						} else {
+							$ivtStatus = "not-yet-available";
+							$base64Cert = null;
+						}
+					} else {
+						$queryStatus = false;
+						$ivtStatus = null;
+						$base64Cert = null;
+					}
+				} else {
+					$ivtStatus = "not-existing";
+					$base64Cert = null;
+				}
+			} else {
+				$queryStatus = false;
+				$ivtStatus = null;
+				$base64Cert = null;
+			}
+
+			echo json_encode(array(
+				'queryStatus' => $queryStatus, 
+				'ivtName' => $inviteeName,
+				'ivtStatus' => $ivtStatus, 
+				'base64Cert' => $base64Cert, 
+			));
 		}
 	}
 ?>

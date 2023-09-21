@@ -23,13 +23,13 @@
 		/**
 		 * To fetch up the attendance list
 		*/
-		public function listAttendance($currentEventID)
+		public function listAttendance($currentEventID, $selectDateStart, $selectDateEnd)
 		{
 			// Using database connection file here
     		include 'dbConnection.php';
 
     		// SQL Query
-    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `attendance`.`datetime_attendance` ASC)) AS `row_num`, CONCAT(`invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename`) AS `invitee_name`, `invitees`.invitee_code, `invitees`.type, `attendance`.datetime_attendance FROM `attendance`, `invitees`, (SELECT @row_number:=0) AS `row_temp` WHERE `attendance`.`event_ID` = ? AND `attendance`.invitee_code = `invitees`.invitee_code ";
+    		$sqlQuery = "SELECT (ROW_NUMBER() OVER(ORDER BY `attendance`.`datetime_attendance` ASC)) AS `row_num`, CONCAT(`invitees`.lastname, ', ', `invitees`.firstname, ' ', `invitees`.`middlename`) AS `invitee_name`, `invitees`.invitee_code, `invitees`.type, `attendance`.datetime_attendance FROM `attendance`, `invitees`, (SELECT @row_number:=0) AS `row_temp` WHERE `attendance`.`event_ID` = ? AND `attendance`.invitee_code = `invitees`.invitee_code AND (`datetime_attendance` BETWEEN ? AND ?) ";
 
     		// For Search Query
     		if(!empty($_POST["search"]["value"])){
@@ -56,14 +56,14 @@
 
 			// Fetch up a list of attendance
 			$attendanceStmt = $conn->prepare($sqlQuery);
-		    $attendanceStmt->bind_param('i', $currentEventID);
+		    $attendanceStmt->bind_param('iss', $currentEventID, $selectDateStart, $selectDateEnd);
 		    $attendanceStmt->execute();
 		    $attendanceList =  $attendanceStmt->get_result();
 		    $attendanceStmt->close();
 
 			// Fetch up number of rows
-			$attendanceNumStmt = $conn->prepare("SELECT * FROM attendance WHERE event_ID = ?");
-		    $attendanceNumStmt->bind_param('i', $currentEventID);
+			$attendanceNumStmt = $conn->prepare("SELECT * FROM attendance WHERE event_ID = ? AND (`datetime_attendance` BETWEEN ? AND ?)");
+		    $attendanceNumStmt->bind_param('iss', $currentEventID, $selectDateStart, $selectDateEnd);
 		    $attendanceNumStmt->execute();
 		    $attendanceNumList =  $attendanceNumStmt->get_result();
 		    $attendanceNumStmt->close();
@@ -81,7 +81,6 @@
 	        		"invitee_code" => $row["invitee_code"],
 	        		"type" => $row["type"],
 	        		"datetime_attendance" => $row["datetime_attendance"],
-	        		// "send" => '<button type="button" name="sendEmailCertificate" id="'.$row["invitee_code"].'" class="btn btn-info btn-xs sendCertificate w-100"><i class="fas fa-envelope"></i> Send Certificate</button>'
 	        		"send" => '<input type="checkbox" class="selectAttendance" value="'.$row["invitee_code"].'">'
 	        	);
 	        	$attendanceData[] = $ivtRows;
@@ -99,13 +98,13 @@
 		/**
 		 * To fetch up the invitees list
 		*/
-		public function listInvitee($currentEventID)
+		public function listInvitee($currentEventID, $selectDateStart, $selectDateEnd)
 		{
 			// Using database connection file here
     		include 'dbConnection.php';
 
     		// SQL Query
-    		$sqlQuery = "SELECT (@row_number:=@row_number + 1) AS `row_num`, (SELECT COUNT(*) FROM attendance WHERE attendance.invitee_code = invitees.invitee_code) AS `attendance_status`, CONCAT(`lastname`, ', ', `firstname`, ' ', `middlename`, ' (', `type`, ')') AS `invitee_name`, `invitee_code`, `email`, `phonenum` FROM invitees, (SELECT @row_number:=0) AS row_temp WHERE `event_ID` = ? AND `status` = 1 ";
+    		$sqlQuery = "SELECT (@row_number:=@row_number + 1) AS `row_num`, (SELECT COUNT(*) FROM attendance WHERE attendance.invitee_code = invitees.invitee_code AND (`datetime_attendance` BETWEEN ? AND ?)) AS `attendance_status`, CONCAT(`lastname`, ', ', `firstname`, ' ', `middlename`, ' (', `type`, ')') AS `invitee_name`, `invitee_code`, `email`, `phonenum` FROM invitees, (SELECT @row_number:=0) AS row_temp WHERE `event_ID` = ? AND `status` = 1 ";
 
     		// For Search Query
     		if(!empty($_POST["search"]["value"])){
@@ -130,7 +129,7 @@
 
 			// Fetch up a list of invitees
 			$inviteeStmt = $conn->prepare($sqlQuery);
-		    $inviteeStmt->bind_param('i', $currentEventID);
+		    $inviteeStmt->bind_param('ssi', $selectDateStart, $selectDateEnd, $currentEventID);
 		    $inviteeStmt->execute();
 		    $inviteeList =  $inviteeStmt->get_result();
 		    $inviteeStmt->close();
@@ -195,6 +194,16 @@
 		*/
 		public function scanAttendance($currentEventID)
 		{
+			// Set Default Time Zone
+			date_default_timezone_set("Asia/Manila");
+
+			// Current Date and Time
+			$currentDateTime = date("Y-m-d H:i:s");
+
+			// Select Date Start and End
+			$selectDateStart = date("Y-m-d ").((date("a") == "am") ? "00:00:00" : "12:00:00");
+			$selectDateEnd = date("Y-m-d ").((date("a") == "am") ? "11:59:59" : "23:59:59");
+
     		// Fetch Invitee Code
     		$inviteeCode = $_POST["inviteeCode"];
 
@@ -224,7 +233,7 @@
 
 	    		if ($scanResult->num_rows > 0) { // If the invitee code registered
 					// SQL Query to check if the code already recorded attendance
-					$sqlCheckQuery = "SELECT * FROM `attendance` WHERE `event_ID` = ? AND `invitee_code` = ?";
+					$sqlCheckQuery = "SELECT * FROM `attendance` WHERE `event_ID` = ? AND `invitee_code` = ? AND (`datetime_attendance` BETWEEN ? AND ?)";
 
 					// Fetch Up Invitee Information
 					while ($row = $scanResult->fetch_assoc()) {
@@ -233,7 +242,7 @@
 
 					// Fetch up the check result
 	    			$checkStmt = $conn->prepare($sqlCheckQuery);
-			        $checkStmt->bind_param('is', $currentEventID, $inviteeCode);
+			        $checkStmt->bind_param('isss', $currentEventID, $inviteeCode, $selectDateStart, $selectDateEnd);
 			        $checkStmt->execute();
 			        $checkResult =  $checkStmt->get_result();
 			        $checkStmt->close();
@@ -243,27 +252,46 @@
 						$output = array("scanStatus" => "already", "scannedInviteeName" => $scannedInviteeName);
 	    			} else {
 	    				// Insert Attendance Record Query
-						$recordStmt = $conn->prepare("INSERT INTO `attendance`(`event_ID`, `invitee_code`) VALUES (?,?)");
-						$recordStmt->bind_param("is", $currentEventID, $inviteeCode);
+						$recordStmt = $conn->prepare("INSERT INTO `attendance`(`event_ID`, `invitee_code`, `datetime_attendance`) VALUES (?,?,?)");
+						$recordStmt->bind_param("iss", $currentEventID, $inviteeCode, $currentDateTime);
 
 						// Validate if Insert Query is successful or not
 						if ($recordStmt->execute()) {
 							$recordStmt->close();
 							// Check if toggle automatic certificate generation
 							if ($isGenerateCert == "auto") {
-								// Insert Certificate Record Query
-								$certStmt = $conn->prepare("INSERT INTO `certificate`(`event_ID`, `invitee_code`, `certificate_code`) VALUES (?,?,?)");
-								$certStmt->bind_param("iss", $currentEventID, $inviteeCode, $certficateCode);
+								// Check if certificate exists
+								$certExistsStmt = $conn->prepare("SELECT `invitee_code` FROM `certificate` WHERE `event_ID` = ? AND `invitee_code` = ?");
+								$certExistsStmt->bind_param("is", $currentEventID, $inviteeCode);
 
-								// Validate if Insert Query is successful or not
-								if ($certStmt->execute()) {
-									$certStmt->close();
-									// It will out success message
-		    						$output = array("scanStatus" => "success", "scannedInviteeName" => $scannedInviteeName);
+								// Check if executes successfully
+								if ($certExistsStmt->execute()) {
+									$checkExistsResult =  $certExistsStmt->get_result();
+									$certExistsStmt->close();
+
+									// Check if the certificate has already generated
+									if ($checkExistsResult->num_rows > 0) {
+										// It will out success message
+											$output = array("scanStatus" => "success", "scannedInviteeName" => $scannedInviteeName." (Checked you attendance succesfully, your certificate has already been generated)");
+									} else {
+										// Insert Certificate Record Query
+										$certStmt = $conn->prepare("INSERT INTO `certificate`(`event_ID`, `invitee_code`, `certificate_code`) VALUES (?,?,?)");
+										$certStmt->bind_param("iss", $currentEventID, $inviteeCode, $certficateCode);
+
+										// Validate if Insert Query is successful or not
+										if ($certStmt->execute()) {
+											$certStmt->close();
+											// It will out success message
+											$output = array("scanStatus" => "success", "scannedInviteeName" => $scannedInviteeName);
+										} else {
+											// It will out error message
+											$output = array("scanStatus" => "error", "scannedInviteeName" => $scannedInviteeName." (Checked but Error Sending Certificate)");
+										}	
+									}
 								} else {
 									// It will out error message
-		    						$output = array("scanStatus" => "error", "scannedInviteeName" => $scannedInviteeName." (Checked but Error Sending Certificate)");
-								}	
+		    						$output = array("scanStatus" => "error", "scannedInviteeName" => $scannedInviteeName." (Checked but Error Generatin Certificate)");
+								}
 				    		} else {
 				    			// It will out success message
 		    					$output = array("scanStatus" => "success", "scannedInviteeName" => $scannedInviteeName);
@@ -366,15 +394,16 @@
 			// Server settings
 		    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
 		    $mail->isSMTP();
-		    $mail->Host = 'smtp.gmail.com';
+		    $mail->Host = 'smtp.hostinger.com';
 		    $mail->SMTPAuth = true;
 		    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 		    $mail->Port = 587;
-		    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
-		    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+
+		    $mail->Username = 'certificates-noreply@attend-certify.com';
+		    $mail->Password = 'VLDHpmnE_c2ZhLA';
 
 		    // Sender settings
-		    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+		    $mail->setFrom('certificates-noreply@attend-certify.com', 'Attend and Certify Certificates');
 
 		    // Setting the email content
 		    $mail->IsHTML(true);
@@ -512,16 +541,16 @@
 			    // Server settings
 			    $mail->SMTPDebug = SMTP::DEBUG_OFF; // for detailed debug output
 			    $mail->isSMTP();
-			    $mail->Host = 'smtp.gmail.com';
+			    $mail->Host = 'smtp.hostinger.com';
 			    $mail->SMTPAuth = true;
 			    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
 			    $mail->Port = 587;
 
-			    $mail->Username = 'attend.certify@gmail.com'; // YOUR gmail email
-			    $mail->Password = 'k0rnb33f19'; // YOUR gmail password
+			    $mail->Username = 'certificates-noreply@attend-certify.com';
+			    $mail->Password = 'VLDHpmnE_c2ZhLA';
 
-			    // Sender and recipient settings
-			    $mail->setFrom('attend.certify@gmail.com', 'Attend and Certify');
+			    // Sender settings
+			    $mail->setFrom('certificates-noreply@attend-certify.com', 'Attend and Certify Certificates');
 			    $mail->addAddress($certEmailInvitee, $certNameInvitee);
 
 			    // Setting the email content

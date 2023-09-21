@@ -160,6 +160,7 @@ $(document).ready(function(){
             })
             .done(function(data) {
                 $("#loadingModal").modal('hide');
+                $("#selectAllInvitees").prop('checked',false);
                 $("#selectAllInvitees").closest('table').find('td input:checkbox').prop('checked', false);
                 inviteeData.rows().deselect();
                 $('#sendSelectedInvitations, #deleteSelectedInvitations').hide();
@@ -216,6 +217,7 @@ $(document).ready(function(){
                     for (var i = 0; i < data.selectedData.length; i++) {
                         strSelected += "<li>" + data.selectedData[i] + "</li>";
                     }
+                    $("#selectAllInvitees").prop('checked',false);
                     $("#selected-invitees-deletion").html(strSelected);
                     $('#deleteSelectedInviteeModal').modal('show');
                 } else {

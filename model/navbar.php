@@ -2,8 +2,8 @@
         <div class="container-fluid mb-5">
             <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top">
                 <!-- Logo -->
-                <a class="navbar-brand" href="#" style="margin-right: 0.5rem;">
-                    <img src="img/logo.svg" alt="Logo" width="50" onContextMenu="return false;"  ondragstart="return false;">
+                <a class="navbar-brand" href="." style="margin-right: 0.25rem;">
+                    <img src="img/logo_circle.svg" alt="Logo" width="50" onContextMenu="return false;"  ondragstart="return false;">
                 </a>
                 <!-- Button for Collapsible Navbar -->
                 <button id="navbar-button" class="navbar-toggler" type="button" data-toggle="collapse" data-target="#collapsibleNavbar">
@@ -29,14 +29,18 @@
                         <li class="nav-item h5 font-weight-bold mx-1 <?php if($activePage == 'about'){ echo 'active';}?>">
                             <a class="nav-link p-2 <?php if($activePage == 'about'){ echo 'text-white';} else { echo 'text-dark';} ?>" href="about.php"><i class="fa fa-info-circle"></i> About</a>
                         </li>
-                        <li class="nav-item dropdown h4 mx-1">
-                            <a class="nav-link p-2 text-dark dropdown-toggle" href="" id="navbarAccount" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-user-circle"></i></a>
-                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarAccount">
-                                <h5 class="ml-2">Hi, <span id="currentLoggedInUsername"><?php echo $username; ?></span>!</h5>
-                                <a class="dropdown-item <?php if($activePage == 'settings'){ echo 'active';}?>" href="settings.php"><i class="fas fa-cog"></i> Settings</a>
-                                <a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                            </div>
-                        </li>
+                        <?php
+                            if ($loggedIn) { ?>
+                                <li class="nav-item dropdown h4 mx-1">
+                                    <a class="nav-link p-2 text-dark dropdown-toggle" href="" id="navbarAccount" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-user-circle"></i></a>
+                                    <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarAccount">
+                                        <h5 class="ml-2">Hi, <span id="currentLoggedInUsername"><?php echo $adminAccountName; ?></span>!</h5>
+                                        <a class="dropdown-item <?php if($activePage == 'settings'){ echo 'active';}?>" href="settings.php"><i class="fas fa-cog"></i> Settings</a>
+                                        <a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                                    </div>
+                                </li>      
+                            <?php }
+                        ?>
                     </ul>
                 </div>
             </nav>
